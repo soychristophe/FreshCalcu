@@ -1,0 +1,659 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Products Panel — FreshWays Pro
+   Importar en index.html: <link rel="stylesheet" href="products-panel.css">
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Botón en pantalla Speed ────────────────────────────────────────────── */
+/* ── Contenedor flotante (Products + History All) ───────────────────────── */
+#sped-float-btns {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.2s;
+}
+
+#sped-float-btns.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Estilo compartido: Products y History All ──────────────────────────── */
+#products-btn,
+#history-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 0.55rem 1.4rem;
+  border-radius: 2rem;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  background: rgba(30,30,40,0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+#products-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+#products-btn:active { transform: scale(0.96); }
+#history-all-btn:active { transform: scale(0.96); }
+
+/* ── Overlay del panel ──────────────────────────────────────────────────── */
+#products-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+#products-panel-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ── Panel flotante ─────────────────────────────────────────────────────── */
+#products-panel {
+  width: 100%;
+  max-width: 640px;
+  min-height: 80vh;
+  max-height: 92vh;
+  background: #1a1a24;
+  border-radius: 1rem 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#products-panel-overlay.open #products-panel {
+  transform: translateY(0);
+}
+
+/* ── Handle ─────────────────────────────────────────────────────────────── */
+.pp-handle {
+  display: flex;
+  justify-content: center;
+  padding: 0.65rem 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.pp-handle span {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.2);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.pp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem 0.75rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.pp-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+.pp-count {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  margin-left: 6px;
+}
+
+.pp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pp-btn-icon {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.5rem;
+  color: rgba(255,255,255,0.7);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+/* Botón cerrar: más ancho y con texto */
+.pp-btn-close {
+  width: auto;
+  padding: 0 12px;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Botón refresh */
+.pp-btn-refresh {
+  width: auto;
+  padding: 0 12px;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.65);
+}
+
+.pp-btn-refresh:active {
+  background: rgba(255,255,255,0.08);
+}
+
+.pp-btn-refresh svg {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.3s ease;
+}
+
+/* Animación de giro mientras refresca */
+@keyframes pp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pp-btn-refresh.spinning svg {
+  animation: pp-spin 0.7s linear infinite;
+}
+
+.pp-btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pp-btn-icon:active {
+  background: rgba(255,255,255,0.08);
+}
+
+.pp-btn-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pp-btn-add {
+  background: #4f6ef7;
+  border-color: transparent;
+  color: #fff;
+  width: auto;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  gap: 5px;
+  border-radius: 0.5rem;
+  height: 32px;
+}
+
+.pp-btn-add:active {
+  background: #3d5be0;
+}
+
+.pp-btn-add svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Buscador interno ───────────────────────────────────────────────────── */
+.pp-search-bar {
+  padding: 0.6rem 1rem;
+  flex-shrink: 0;
+}
+
+.pp-search-wrap {
+  position: relative;
+}
+
+.pp-search-wrap svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  stroke: rgba(255,255,255,0.3);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+#pp-search {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.6rem;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#pp-search::placeholder { color: rgba(255,255,255,0.28); }
+#pp-search:focus { border-color: rgba(79,110,247,0.6); }
+
+/* ── Lista de productos ─────────────────────────────────────────────────── */
+.pp-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.pp-list::-webkit-scrollbar { width: 3px; }
+.pp-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+.pp-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 8px;
+  padding: 0.7rem 0.6rem;
+  border-radius: 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s;
+}
+
+.pp-item:last-child { border-bottom: none; }
+.pp-item:active { background: rgba(255,255,255,0.04); }
+
+.pp-item-info { min-width: 0; }
+
+.pp-item-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-item-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.pp-tag {
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: 0.3rem;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.pp-tag-id {
+  background: rgba(79,110,247,0.15);
+  color: #8fa8ff;
+  border: 1px solid rgba(79,110,247,0.2);
+}
+
+.pp-tag-sku {
+  background: rgba(80,200,120,0.12);
+  color: #72d68e;
+  border: 1px solid rgba(80,200,120,0.18);
+}
+
+.pp-tag-values {
+  background: rgba(255,180,50,0.1);
+  color: #f5b942;
+  border: 1px solid rgba(255,180,50,0.18);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.pp-action-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.4rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pp-action-btn:active { background: rgba(255,255,255,0.07); }
+
+.pp-action-btn.edit:active { color: #8fa8ff; border-color: rgba(79,110,247,0.4); }
+.pp-action-btn.del:active  { color: #ff7070; border-color: rgba(255,80,80,0.4); }
+
+.pp-action-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Paginación ─────────────────────────────────────────────────────────── */
+.pp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.pp-page-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.4rem;
+  color: rgba(255,255,255,0.7);
+  width: 32px;
+  height: 28px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pp-page-btn:disabled { opacity: 0.3; cursor: default; }
+.pp-page-btn:not(:disabled):active { background: rgba(255,255,255,0.12); }
+.pp-page-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.pp-page-info {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ── Estado vacío / cargando ────────────────────────────────────────────── */
+.pp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.85rem;
+  gap: 8px;
+  text-align: center;
+}
+
+.pp-state svg {
+  width: 32px;
+  height: 32px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.4;
+}
+
+/* ── Modal de formulario ────────────────────────────────────────────────── */
+#pp-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#pp-form-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#pp-form-modal {
+  background: #1e1e2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 420px;
+  padding: 1.25rem;
+  transform: scale(0.96);
+  transition: transform 0.2s;
+}
+
+#pp-form-overlay.open #pp-form-modal {
+  transform: scale(1);
+}
+
+.pp-form-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.pp-field {
+  margin-bottom: 0.85rem;
+}
+
+.pp-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 0.3rem;
+}
+
+.pp-input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.pp-input:focus { border-color: rgba(79,110,247,0.6); }
+.pp-input::placeholder { color: rgba(255,255,255,0.2); }
+.pp-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pp-input-hint {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  margin-top: 0.25rem;
+}
+
+.pp-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 1.1rem;
+}
+
+.pp-form-actions button {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.pp-btn-cancel {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+}
+
+.pp-btn-cancel:active { background: rgba(255,255,255,0.12); }
+
+.pp-btn-save {
+  background: #4f6ef7;
+  border: none;
+  color: #fff;
+}
+
+.pp-btn-save:active  { background: #3d5be0; }
+.pp-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Toast del panel ────────────────────────────────────────────────────── */
+#pp-toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 700;
+  background: rgba(30,30,46,0.95);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 0.6rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.8rem;
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+#pp-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#pp-toast.success { border-color: rgba(80,200,120,0.4); color: #72d68e; }
+#pp-toast.error   { border-color: rgba(255,80,80,0.4);  color: #ff7070; }
+
+/* ── Popup de contraseña para eliminar ──────────────────────────────────── */
+#pp-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#pp-delete-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#pp-delete-modal {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 80, 80, 0.25);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 1.4rem 1.25rem 1.25rem;
+  transform: scale(0.94);
+  transition: transform 0.2s;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#pp-delete-overlay.open #pp-delete-modal {
+  transform: scale(1);
+}
+
+.pp-delete-modal-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ff7070;
+  margin-bottom: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-delete-modal-sub {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 1rem;
+}
+
+.pp-delete-pin-input {
+  text-align: center;
+  font-size: 1.3rem;
+  letter-spacing: 0.25em;
+  padding: 0.55rem 0.75rem;
+}
+
+.pp-delete-error {
+  font-size: 0.75rem;
+  color: #ff7070;
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+.pp-btn-delete-confirm {
+  background: #c0392b !important;
+}
+
+.pp-btn-delete-confirm:active {
+  background: #a93226 !important;
+}

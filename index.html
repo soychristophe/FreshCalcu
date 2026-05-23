@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FreshWays Pro</title>
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- iOS -->
+  <link rel="apple-touch-icon" href="/icons/192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FreshCalcu">
+
+  <!-- Android / Chrome -->
+  <meta name="theme-color" content="#4361ee">
+
+  <!-- ── Scan-button styles ──────────────────────────────────────────────── -->
+  <style>
+    /* Row: input grows, button stays fixed */
+    .sped-barcode-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .sped-barcode-row #sped-barcode {
+      flex: 1;
+      min-width: 0;   /* prevents overflow inside flex */
+    }
+
+    /* Camera button */
+    .btn-scan-camera {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 14px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #4361ee;
+      color: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      transition: background .15s, transform .1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-scan-camera:hover  { background: #3451d1; }
+    .btn-scan-camera:active { transform: scale(.96); }
+
+    /* On very narrow screens drop the text label */
+    @media (max-width: 340px) {
+      .scan-btn-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Prevent password managers from hijacking number inputs -->
+<form autocomplete="off" style="display:none"></form>
+
+<!-- PWA install banner -->
+<div id="install-banner">
+  <span>📲 Install FreshWays Pro as an app</span>
+  <div style="display:flex;gap:6px">
+    <button id="install-btn">Install</button>
+    <button class="dismiss" id="dismiss-btn">✕</button>
+  </div>
+</div>
+
+<!-- Tab navigation -->
+<nav class="top-nav">
+  <button id="tab-sped" onclick="switchTab('sped')">
+    <span style="font-size:14px">⚡</span> SPEED <span style="opacity:0.6">(F10)</span>
+  </button>
+  <button id="tab-calc" class="active" onclick="switchTab('calc')">
+    <span style="font-size:14px">🔢</span> CALC <span style="opacity:0.6">(F11)</span>
+  </button>
+  <button id="tab-msj" onclick="switchTab('msj')">
+    <span style="font-size:14px">⚙️</span> MSJ <span style="opacity:0.6">(F12)</span>
+  </button>
+</nav>
+
+<main style="flex:1; display:flex; flex-direction:column; overflow: hidden;">
+
+  <!-- ─── CALC / BOX section ──────────────────────────────────────────── -->
+  <section id="sec-main" style="display:flex; flex-direction:column; height:100%;">
+
+    <div class="screen-header" id="screen-header">
+      <div class="calc-focus-area" id="calc-focus-area" onclick="setInputFocus('calc')">
+        <span class="calc-area-title">CALCULATOR</span>
+        <div class="main-display-row">
+          <div id="display">0</div>
+          <div id="preview"></div>
+        </div>
+      </div>
+      <div class="mini-box-display">
+        <div class="mini-item unit-row" id="unit-focus-area" onclick="setInputFocus('unit')">
+          <span class="mini-label">UNIT PRODUCT</span>
+          <span id="mini-total" class="mini-val">0</span>
+        </div>
+        <div class="mini-row">
+          <div class="mini-item">
+            <span class="mini-label">CRATES FULL</span>
+            <span id="mini-full" class="mini-val res" onclick="copyToClipboard(this.innerText)">0</span>
+          </div>
+          <div class="mini-item">
+            <span class="mini-label">LAST UNITS</span>
+            <span id="mini-rest" class="mini-val rem" onclick="copyToClipboard(this.innerText)">0</span>
+            <span id="mini-formula" style="color:#777; font-size:2.2rem"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="keyboard" style="grid-template-rows: repeat(2, 1fr);">
+      <button class="btn-clean-total" onclick="clsTotal()"><span class="f-hint">TOTAL</span>Clean T</button>
+      <button class="btn-clear"       onclick="cls()"><span class="f-hint">ESC / END</span>Clean</button>
+      <button class="btn-del"         onclick="del()"><span class="f-hint">DEL</span>⌫</button>
+      <button class="btn-op"          onclick="press('+')"><span class="f-hint">F1</span>+</button>
+      <button class="btn-op"          onclick="press('-')"><span class="f-hint">F2</span>−</button>
+      <button class="btn-op"          onclick="press('*')"><span class="f-hint">F3</span>×</button>
+      <button class="btn-op"          onclick="press('/')"><span class="f-hint">F4</span>÷</button>
+    </div>
+  </section>
+
+  <!-- ─── MSJ section ─────────────────────────────────────────────────── -->
+  <section id="sec-msj" style="display:none;">
+    <div class="msj-container">
+      <button class="btn-msj c-short"   onclick="showMsj('SHORT','#ff0000','#fff')">SHORT</button>
+      <button class="btn-msj c-ok"      onclick="showMsj('It\'s OK','#2ec4b6','#fff')">OK</button>
+      <button class="btn-msj c-extra"   onclick="showMsj('EXTRA','#4361ee','#fff')">EXTRA</button>
+      <button class="btn-msj c-wait"    onclick="showMsj('WAIT !!!','#f72585','#fff')">WAIT!!!</button>
+      <button class="btn-msj c-notscan" onclick="showMsj('NOT SCAN','#6a0dad','#fff')">NOT SCAN</button>
+      <button class="btn-msj c-wheels"  onclick="showMsj('WHEELS','#ffeb3b','#000')">WHEELS</button>
+      <button class="btn-msj c-crate"   onclick="showMsj('CRATE','#ff9f1c','#fff')">CRATE</button>
+      <button class="btn-msj c-docs"    onclick="showMsj('DOCUMENT ORDERS','#008080','#fff')">DOC ORDERS</button>
+      <button class="btn-msj c-urgent"  onclick="showMsj('URGENT','#c0ed38','#000')">URGENT</button>
+      <button class="btn-msj c-stop"    onclick="showMsj('STOP','#000000','#fff','10px solid red')">STOP</button>
+      <button class="btn-msj c-Toilet"  onclick="showMsj('Toilet','#000000','#fff','10px solid red')">TOILET</button>
+      <button class="btn-msj c-Toilet"  onclick="showMsj('soychristophe','#fff','#000000','5px solid lightyellow')">soychristophe</button>
+    </div>
+  </section>
+
+  <!-- ─── SPED section ────────────────────────────────────────────────── -->
+  <section id="sec-sped" class="sped-container">
+
+    <!-- Step 1: Search product -->
+    <div id="sped-step1" class="sped-step active-step">
+
+      <!--
+        .sped-barcode-row wraps the text input and the new camera button
+        in a flex row. The input keeps all its existing attributes untouched.
+      -->
+      <div class="sped-barcode-row">
+        <input
+          type="text" inputmode="text" id="sped-barcode"
+          placeholder="Scan barcode or type name..."
+          autocorrect="off" autocapitalize="none"
+          spellcheck="false" autocomplete="new-password"
+          data-lpignore="true" data-form-type="other"
+        >
+        <button
+          id="sped-scan-btn"
+          class="btn-scan-camera"
+          aria-label="Open camera scanner"
+          title="Scan barcode with camera"
+          type="button"
+        >
+          <!--
+            Inline SVG camera icon — no external file, renders everywhere,
+            works offline from first load.
+          -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8
+                     a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span class="scan-btn-label">SCAN</span>
+        </button>
+      </div>
+
+      <div id="sped-product-name" class="sped-product-name"></div>
+
+      <div class="history-filter-row">
+        <label class="toggle-switch">
+          <input type="checkbox" id="sped-filter-history">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">Skip searched</span>
+        <span id="history-filter-count" class="history-filter-count"></span>
+      </div>
+
+      <div class="sped-actions">
+        <div class="sped-actions-main">
+          <button onclick="resetSped()"          class="btn btn-gray">CLEAN</button>
+          <button onclick="nextSped()"           class="btn btn-primary">CONTINUE</button>
+          <button onclick="toggleHistoryPanel()" class="btn btn-history">📋 HISTORY DAY</button>
+          <button onclick="pasteClipboard()"     class="btn btn-primary btn-paste">PASTE</button>
+        </div>
+      </div>
+
+      <div id="sped-suggestions" class="suggestions-container"></div>
+      <p id="sped-error-step1" class="error-message"></p>
+    </div>
+
+    <!-- Step 2: Enter quantities -->
+    <div id="sped-step2" class="sped-step">
+      <h3 class="sped-title title-success">Total Amount</h3>
+      <input
+        type="number" id="sped-qty"
+        placeholder="Enter the amount" class="sped-input"
+        inputmode="decimal" autocomplete="new-password"
+        data-lpignore="true" data-form-type="other"
+      >
+      <h3 class="sped-title title-pull" style="margin-top:2px">Pull Forward Quantity</h3>
+      <input
+        type="number" id="pull-qty"
+        placeholder="Enter pull qty (optional)" class="sped-input"
+        inputmode="decimal" autocomplete="new-password"
+        data-lpignore="true" data-form-type="other"
+      >
+      <div class="sped-actions-row">
+        <button onclick="backSped()"    class="btn btn-gray">BACK</button>
+        <button onclick="processSped()" class="btn btn-success">CALCULATE</button>
+      </div>
+      <div id="sped-product-info" class="sped-product-info"></div>
+      <p id="sped-error-step2" class="error-message"></p>
+    </div>
+
+    <!-- Step 3: Normal calculation result -->
+    <div id="sped-calc-result" class="section-block today-block" style="display:none; flex-direction:column; height:100%;">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <div>
+          <div class="section-title">RESULT</div>
+          <div id="calc-product-name" class="section-sub">Product Name</div>
+        </div>
+      </div>
+      <div class="card-grid" id="calc-row1">
+        <div class="card">
+          <span class="card-label">UNIT PRODUCT</span>
+          <span id="calc-total-units" class="card-value">0</span>
+        </div>
+        <div class="card">
+          <span class="card-label">CRATES FULL</span>
+          <span id="calc-full" class="card-value">0</span>
+        </div>
+      </div>
+      <div class="card-grid" id="calc-row2">
+        <div class="card" id="calc-formula-card">
+          <span class="card-label">FORMULA</span>
+          <span id="calc-formula" class="card-value">0</span>
+        </div>
+        <div class="card-highlight">
+          <div class="card-half rem-half">
+            <span class="card-label">LAST UNITS</span>
+            <span id="calc-rem" class="card-value">0</span>
+          </div>
+          <div class="card-half calc-half">
+            <span class="card-label">CALCULATION</span>
+            <span id="calc-rem-formula" class="card-value">0</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="bottom-btns">
+        <button class="btn-bottom" onclick="backToStep2FromCalcResult()">
+          <div class="btn-icon-circle icon-green">←</div>
+          <div class="btn-content">
+            <span class="btn-top-text" style="color:#10B981">BACK TO</span>
+            <span class="btn-main-text">TOTAL AMOUNT</span>
+          </div>
+        </button>
+        <button class="btn-new-speed btn-bottom" onclick="resetSped()">🔄 NEW SPEED</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Pull-forward split result -->
+    <div id="sped-pull-result" style="display:none; flex-direction:column; height:100%;">
+      <div class="section-block today-block">
+        <div class="section-header">
+          <div class="section-icon">📅</div>
+          <div onclick="sendTodayToCalcu()" class="section-title-clickable">
+            <div class="section-title">TODAY</div>
+            <div id="pull-today-product" class="section-sub">Product Name</div>
+          </div>
+        </div>
+        <div class="card-grid" id="today-row1">
+          <div class="card"><span class="card-label">UNIT PRODUCT</span><span id="pull-today-units" class="card-value">0</span></div>
+          <div class="card"><span class="card-label">CRATES FULL</span><span id="pull-today-full"  class="card-value">0</span></div>
+        </div>
+        <div class="card-grid" id="today-row2">
+          <div class="card" id="today-formula-card">
+            <span class="card-label">FORMULA</span><span id="pull-today-formula" class="card-value">0</span>
+          </div>
+          <div class="card-highlight">
+            <div class="card-half rem-half"><span class="card-label">LAST UNITS</span><span id="pull-today-rem" class="card-value">0</span></div>
+            <div class="card-half calc-half"><span class="card-label">CALCULATION</span><span id="pull-today-rem-formula" class="card-value">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block pull-block">
+        <div class="section-header pull-header">
+          <div class="section-icon pull-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </div>
+          <div onclick="sendPullToCalcu()" class="section-title-clickable">
+            <div class="section-title">PULL</div>
+            <div id="pull-pull-product" class="section-sub">Product Name</div>
+          </div>
+        </div>
+        <div class="card-grid" id="pull-row1">
+          <div class="card"><span class="card-label">PULL UNIT</span><span id="pull-pull-units" class="card-value">0</span></div>
+          <div class="card"><span class="card-label">FULL (PULL)</span><span id="pull-pull-full" class="card-value">0</span></div>
+        </div>
+        <div class="card-grid" id="pull-row2">
+          <div class="card" id="pull-formula-card">
+            <span class="card-label">FORMULA</span><span id="pull-pull-formula" class="card-value">0</span>
+          </div>
+          <div class="card-highlight">
+            <div class="card-half rem-half"><span class="card-label">LAST UNITS REM (PULL)</span><span id="pull-pull-rem" class="card-value">0</span></div>
+            <div class="card-half calc-half"><span class="card-label">CALCULATION</span><span id="pull-pull-rem-formula" class="card-value">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-btns">
+        <button class="btn-bottom" onclick="backToStep2FromPullResult()">
+          <div class="btn-icon-circle icon-green">←</div>
+          <div class="btn-content">
+            <span class="btn-top-text" style="color:#10B981">BACK TO</span>
+            <span class="btn-main-text">TOTAL AMOUNT</span>
+          </div>
+        </button>
+        <button class="btn-new-speed btn-bottom" onclick="resetSped()">🔄 NEW SPEED</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- MSJ fullscreen overlay -->
+<div id="msj-overlay">
+  <button id="btn-rotate" onclick="toggleRotation(event)">🔄</button>
+  <div id="msj-text"></div>
+</div>
+
+<!-- Status indicators -->
+<div id="offline-badge">📶 Active offline mode</div>
+<div id="copy-toast">Copied to clipboard</div>
+
+<!-- Scan history panel -->
+<div id="history-backdrop"  class="history-backdrop"  onclick="toggleHistoryPanel()"></div>
+<div id="history-panel"     class="history-panel">
+  <div class="history-panel-header">
+    <span class="history-panel-title">📋 HISTORY</span>
+    <div class="history-panel-actions">
+      <button onclick="clearHistory()"       class="btn-hist-clear">🗑 CLEAR</button>
+      <button onclick="toggleHistoryPanel()" class="btn-hist-close">✕</button>
+    </div>
+  </div>
+  <div id="history-list" class="history-list">
+    <p class="history-empty">No scanned barcodes yet.</p>
+  </div>
+</div>
+
+<!-- Cloud audit log panel -->
+<div id="history-all-backdrop" class="history-all-backdrop" onclick="toggleHistoryAllPanel()"></div>
+<div id="history-all-panel"    class="history-all-panel">
+  <div class="history-all-header">
+    <span class="history-all-title">☁️ HISTORY ALL</span>
+    <div class="history-all-actions">
+      <button onclick="toggleHistoryAllPanel()" class="btn-hall-close">✕ CLOSE</button>
+    </div>
+  </div>
+  <div class="history-all-filter">
+    <label for="history-all-from">FROM</label>
+    <input type="date" id="history-all-from" autocomplete="new-password">
+    <label for="history-all-to">TO</label>
+    <input type="date" id="history-all-to"   autocomplete="new-password">
+    <button onclick="applyHistoryAllFilter()" class="btn-hall-apply">FILTER</button>
+  </div>
+  <div id="history-all-count" class="history-all-count">—</div>
+  <div id="history-all-list"  class="history-all-list">
+    <p class="history-empty">Open to load entries.</p>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+
+</body>
+</html>
