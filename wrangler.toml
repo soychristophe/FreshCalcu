@@ -1,0 +1,21 @@
+# ─── wrangler.toml ────────────────────────────────────────────────────────────
+# Single D1 database — freshways-products now owns products + history tables.
+# The freshways-history database and its binding have been removed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name = "freshways-api"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding  = "DB"           # single binding used everywhere in the Worker
+database_name = "freshways-products"
+database_id   = "b4eb6148-3613-4545-9eac-0796ed54a3dd"   # keep your existing ID
+
+# ── Removed ───────────────────────────────────────────────────────────────────
+# The following block must NOT exist anymore:
+#
+# [[d1_databases]]
+# binding       = "HISTORY_DB"
+# database_name = "freshways-history"
+# database_id   = "b4eb6148-3613-4545-9eac-0796ed54a3dd"
