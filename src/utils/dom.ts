@@ -15,7 +15,7 @@ export function make<K extends keyof HTMLElementTagNameMap>(
   ...children: (Node | string)[]
 ): HTMLElementTagNameMap[K] {
   const node = Object.assign(document.createElement(tag), props);
-  if (children.length) node.append(...(children as [Node | string, ...(Node | string)[]]));
+  node.append(...children);
   return node;
 }
 

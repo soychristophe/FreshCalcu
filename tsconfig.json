@@ -5,9 +5,6 @@
     "lib":         ["ES2022", "DOM", "DOM.Iterable"],
     "module":      "ESNext",
     "moduleResolution": "Bundler",
-    
-    /* ── Añade esto para que reconozca D1 y Workers ─────────────────── */
-    "types":       ["@cloudflare/workers-types"],
 
     /* ── Strict type checking ───────────────────────────────────────── */
     "strict":                        true,
@@ -46,5 +43,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", "public"]
+  "exclude": ["node_modules", "dist", "public", "src/worker.ts"]
 }
