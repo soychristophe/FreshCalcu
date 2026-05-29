@@ -1,0 +1,109 @@
+/* ══════════════════════════════════════════════
+   FRESHWAYS PRO — msj.css
+   MSJ Section · Fullscreen Overlay
+   ══════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════
+   MSJ SECTION
+   ══════════════════════════════════════════════ */
+#sec-msj {
+  display: none;
+  height: 100%;
+  overflow: hidden;
+}
+
+.msj-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 6px;
+  padding: 6px;
+  height: 100%;
+  background: var(--border);
+}
+
+.btn-msj {
+  background: white;
+  border: none;
+  font-weight: 900;
+  font-size: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.btn-msj:active { background: #eee; }
+
+/* ── Color variants ── */
+.c-short   { color: #ff0000; }
+.c-ok      { color: #2ec4b6; }
+.c-extra   { color: #4361ee; }
+.c-wait    { color: #f72585; }
+.c-notscan { color: #6a0dad; }
+.c-wheels  { color: #ccac00; }
+.c-crate   { color: #ff9f1c; }
+.c-docs    { color: #008080; }
+.c-urgent  { background-color: #d00000 !important; color: white; }
+.c-stop    { background-color: #000000 !important; color: white; border: 2px solid red; }
+
+/* ══════════════════════════════════════════════
+   MSJ FULLSCREEN OVERLAY
+   ══════════════════════════════════════════════ */
+#msj-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;   /* Dynamic viewport height (Chrome 108+, Safari 15.4+) */
+  min-height: 100svh; /* Safe fallback para PWA */
+  z-index: 9999;
+  background: #000;
+}
+
+#msj-overlay.active { display: block; }
+
+#msj-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-weight: 900;
+  line-height: 0.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  padding: 1vw;
+  transform: translate(-50%, -50%) rotate(var(--angle, 90deg));
+  width: var(--tw, 100vh);
+  height: var(--th, 100vw);
+  transition: transform 0.25s ease-out;
+  overflow: hidden;
+}
+
+#btn-rotate {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  font-size: 26px;
+  background: rgba(255,255,255,0.3);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#btn-rotate:active { background: rgba(255,255,255,0.5); }

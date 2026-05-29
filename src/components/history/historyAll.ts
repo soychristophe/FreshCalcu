@@ -1,5 +1,7 @@
 // ─── src/components/history/historyAll.ts ────────────────────────────────────
 // Cloud audit log panel — reads from D1 /api/history-all.
+// Adds a CSV export button when entries are loaded.
+// Default date filter: current day (avoids loading the full log on open).
 
 import { apiGetHistoryAll, apiClearHistoryAll } from '@/services/api.ts';
 import { formatHistoryAllDate }  from '@/utils/format.ts';
@@ -11,6 +13,31 @@ let _entries: HistoryAllEntry[] = [];
 let _panelOpen  = false;
 let _loading    = false;
 
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+
+/** Returns today's date as "YYYY-MM-DD" in local time. */
+function todayISO(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
+ * Seeds the date-range inputs with today if they are still empty.
+ * This keeps the filter intact when the user has already set custom dates
+ * and merely closes/re-opens the panel.
+ */
+function seedDefaultDateFilter(): void {
+  const fromEl = findEl<HTMLInputElement>('history-all-from');
+  const toEl   = findEl<HTMLInputElement>('history-all-to');
+  const today  = todayISO();
+
+  if (fromEl && !fromEl.value) fromEl.value = today;
+  if (toEl   && !toEl.value)   toEl.value   = today;
+}
+
 /* ── Public API ──────────────────────────────────────────────────────────── */
 
 export async function toggleHistoryAllPanel(): Promise<void> {
@@ -21,10 +48,13 @@ export async function toggleHistoryAllPanel(): Promise<void> {
   if (_panelOpen) {
     panel?.classList.add('open');
     backdrop?.classList.add('open');
+    seedDefaultDateFilter();
     await loadHistoryAll();
   } else {
     panel?.classList.remove('open');
     backdrop?.classList.remove('open');
+    // Notify SPED so it can reclaim focus if needed
+    document.dispatchEvent(new CustomEvent('modal:closed'));
   }
   haptic();
 }
@@ -36,6 +66,7 @@ export async function applyHistoryAllFilter(): Promise<void> {
 export async function clearHistoryAll(): Promise<void> {
   _entries = [];
   renderHistoryAllList();
+  renderExportButton();
   const countEl = findEl('history-all-count');
   if (countEl) countEl.textContent = '0 entries';
   haptic();
@@ -67,8 +98,10 @@ async function loadHistoryAll(): Promise<void> {
         `${data.total} entries${from || to ? ' (filtered)' : ''}`;
     }
     renderHistoryAllList();
+    renderExportButton();
   } catch {
     if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
+    renderExportButton();
   } finally {
     _loading = false;
   }
@@ -126,4 +159,77 @@ function renderHistoryAllList(): void {
   });
 
   listEl.replaceChildren(frag);
+}
+
+/* ── CSV Export ──────────────────────────────────────────────────────────── */
+
+/**
+ * Injects / updates the Export CSV button in the history-all-panel header.
+ * Button only renders when there are entries in memory.
+ */
+function renderExportButton(): void {
+  const actionsEl = findEl('history-all-actions');
+  if (!actionsEl) return;
+
+  // Remove any existing export button
+  actionsEl.querySelectorAll('.btn-hall-export').forEach(b => b.remove());
+
+  if (_entries.length === 0) return;
+
+  const btn = document.createElement('button');
+  btn.className   = 'btn-hall-export btn-hall-apply';
+  btn.textContent = '⬇ CSV';
+  btn.title       = 'Export as CSV';
+  btn.addEventListener('click', exportCSV);
+
+  // Insert before the close button
+  const closeBtn = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
+  actionsEl.insertBefore(btn, closeBtn);
+}
+
+function escapeCSVField(value: string | number | null): string {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  // Wrap in double-quotes if the value contains a comma, quote, or newline
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function exportCSV(): void {
+  const headers = ['Fecha', 'Hora', 'Barcode ID', 'Nombre producto', 'CC Qty', 'Pull Qty'];
+
+  const rows = _entries.map(entry => {
+    const dt = new Date(entry.scanned_at);
+    const fecha = isNaN(dt.getTime())
+      ? entry.scanned_at
+      : dt.toLocaleDateString();
+    const hora  = isNaN(dt.getTime())
+      ? ''
+      : dt.toLocaleTimeString();
+
+    return [
+      escapeCSVField(fecha),
+      escapeCSVField(hora),
+      escapeCSVField(entry.barcode_id),
+      escapeCSVField(entry.product_name),
+      escapeCSVField(entry.qty),
+      escapeCSVField(entry.pull_qty),
+    ].join(',');
+  });
+
+  const csv      = [headers.join(','), ...rows].join('\r\n');
+  const blob     = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const today    = new Date().toISOString().split('T')[0] ?? 'export';
+  const filename = `freshways-history-${today}.csv`;
+
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

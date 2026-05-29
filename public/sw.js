@@ -15,19 +15,32 @@ const CACHE_NAME = 'freshways-v2-shell';
 // Core shell assets cached at install time.
 // Vite hashed bundles (/assets/*.js) are added to the cache lazily on first
 // fetch, so we don't need to enumerate them here (they change every build).
+//
+// ⚠️  In Vite, files inside /public/ are served from the ROOT, not /public/.
+//     So /public/icons/192.png → served at /icons/192.png.
 const SHELL_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './public/icons/72.png',
-  './public/icons/192.png',
-  './public/icons/512.png',
+  './icons/72.png',
+  './icons/192.png',
+  './icons/512.png',
 ];
 
 /* ── Install ─────────────────────────────────────────────────────────────── */
+// Uses Promise.allSettled instead of addAll so that a single missing asset
+// (e.g. a missing icon) does NOT abort the entire SW install.
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(SHELL_ASSETS)),
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(
+        SHELL_ASSETS.map(url =>
+          fetch(url).then(res => {
+            if (res.ok) return cache.put(url, res);
+          }).catch(() => { /* ignore individual failures */ })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -53,7 +66,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // ── API calls: always network, never cache ─────────────────────────────
+  // Covers both /api/* paths and requests to the Cloudflare worker domain.
   if (url.pathname.startsWith('/api/')) return;
+  if (url.hostname.endsWith('.workers.dev')) return;
 
   // ── Navigation: cache-first, network fallback, Safari fix ─────────────
   if (e.request.mode === 'navigate') {
@@ -65,17 +80,26 @@ self.addEventListener('fetch', (e) => {
         if (response?.redirected) {
           const body = await response.blob();
           response = new Response(body, {
-            status:  200,
+            status:     200,
             statusText: 'OK',
-            headers: response.headers,
+            headers:    response.headers,
           });
         }
 
         if (response) return response;
 
-        return fetch(e.request).catch(() =>
-          new Response('Offline — cache not yet populated', { status: 503 }),
-        );
+        // Not in cache yet: try the network and cache the result.
+        return fetch(e.request)
+          .then(res => {
+            if (res.ok) cache.put('./index.html', res.clone());
+            return res;
+          })
+          .catch(() =>
+            new Response(
+              '<h2 style="font-family:sans-serif;padding:2rem">📶 You are offline. Open the app once with internet to enable offline mode.</h2>',
+              { status: 503, headers: { 'Content-Type': 'text/html' } }
+            )
+          );
       }),
     );
     return;

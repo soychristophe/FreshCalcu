@@ -1,0 +1,47 @@
+/* ══════════════════════════════════════════════
+   FRESHWAYS PRO — keyboard.css
+   Calculator Keyboard
+   ══════════════════════════════════════════════ */
+
+.keyboard {
+  flex: 0 0 20%;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  background: var(--border);
+  gap: 1px;
+  min-height: 0;
+}
+
+.keyboard button {
+  border: none;
+  background: white;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.1s, transform 0.1s;
+  min-height: 0;
+}
+
+.keyboard button:active,
+.keyboard button.flash {
+  background-color: #e2e6ff !important;
+  transform: scale(0.95);
+}
+
+.f-hint {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-bottom: -2px;
+  font-weight: normal;
+  text-transform: uppercase;
+}
+
+.btn-op          { color: var(--op); background: #fffafc !important; grid-column: span 3; }
+.btn-clean-total { color: #ff9f1c; grid-column: span 4; }
+.btn-clear       { color: #ff4d4d; grid-column: span 4; }
+.btn-del         { grid-column: span 4; }

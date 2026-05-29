@@ -24,14 +24,14 @@ export function formatHistoryAllDate(isoStr: string): string {
  *
  * Rules applied in order:
  *   1. Remove whitespace around math operators so "9 x 6" → "9x6"
- *   2. x / X / × / m / M  →  *    (multiplication)
- *   3. s / S               →  +    (addition — Spanish keyboard shortcut)
- *   4. .                   →  ", " (formula separator: dot)
- *   5. remaining spaces    →  ", " (formula separator: space)
+ *   2. x / X / × / M  →  *    (multiplication)
+ *   3. m / s / S       →  +    (addition — m is Spanish shortcut for más/plus)
+ *   4. .               →  ", " (formula separator: dot)
+ *   5. remaining spaces →  ", " (formula separator: space)
  *
  * Examples:
- *   "7m3"         → "7*3"
- *   "7m3s5"       → "7*3+5"
+ *   "7m3"         → "7+3"
+ *   "7x3m5"       → "7*3+5"
  *   "9x6.9x7"     → "9*6, 9*7"
  *   "red blue"    → "red, blue"
  */
@@ -40,8 +40,8 @@ export function transformValuesInput(raw: string): string {
   const cleaned = raw.replace(/\s*([xXmM×*sS+\-/])\s*/g, '$1');
   // 2–5. Apply replacements
   return cleaned
-    .replace(/[xX×mM]/g, '*')   // multiplication aliases → *
-    .replace(/[sS]/g,    '+')   // addition alias → +
+    .replace(/[xX×]/g, '*')   // multiplication aliases → *
+    .replace(/[mMsS]/g,  '+')   // addition aliases → + (m = más/plus)
     .replace(/\./g,      ', ')  // dot → formula separator
     .replace(/ /g,       ', '); // remaining space → formula separator
 }

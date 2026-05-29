@@ -15,49 +15,17 @@
   <!-- Android / Chrome -->
   <meta name="theme-color" content="#4361ee">
 
-  <!-- ── Scan-button styles ──────────────────────────────────────────────── -->
-  <style>
-    /* Row: input grows, button stays fixed */
-    .sped-barcode-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-    }
-    .sped-barcode-row #sped-barcode {
-      flex: 1;
-      min-width: 0;   /* prevents overflow inside flex */
-    }
+  <!-- ── Stylesheets ─────────────────────────────────────────────────────── -->
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/layout.css">
+  <link rel="stylesheet" href="/src/styles/pwa.css">
+  <link rel="stylesheet" href="/src/styles/calculator.css">
+  <link rel="stylesheet" href="/src/styles/keyboard.css">
+  <link rel="stylesheet" href="/src/styles/msj.css">
+  <link rel="stylesheet" href="/src/styles/speed.css">
+  <link rel="stylesheet" href="/src/styles/history.css">
+  <link rel="stylesheet" href="/src/styles/products-panel.css">
 
-    /* Camera button */
-    .btn-scan-camera {
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      padding: 0 14px;
-      height: 44px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      background: #4361ee;
-      color: #fff;
-      font-size: .78rem;
-      font-weight: 700;
-      letter-spacing: .04em;
-      transition: background .15s, transform .1s;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn-scan-camera:hover  { background: #3451d1; }
-    .btn-scan-camera:active { transform: scale(.96); }
-
-    /* On very narrow screens drop the text label */
-    @media (max-width: 340px) {
-      .scan-btn-label { display: none; }
-    }
-  </style>
 </head>
 <body>
 
@@ -91,41 +59,80 @@
   <!-- ─── CALC / BOX section ──────────────────────────────────────────── -->
   <section id="sec-main" style="display:flex; flex-direction:column; height:100%;">
 
+    <!--
+      screen-header is now a ROW:
+        [stack-column]  [calc-column → calc-focus-area + mini-box-display]
+    -->
     <div class="screen-header" id="screen-header">
-      <div class="calc-focus-area" id="calc-focus-area" onclick="setInputFocus('calc')">
-        <span class="calc-area-title">CALCULATOR</span>
-        <div class="main-display-row">
-          <div id="display">0</div>
-          <div id="preview"></div>
-        </div>
+
+      <!-- ── Left column: Box Stack ─────────────────────────────────────── -->
+      <div class="stack-column" id="stack-column">
+        <div class="box-stack" id="box-stack" hidden></div>
       </div>
-      <div class="mini-box-display">
-        <div class="mini-item unit-row" id="unit-focus-area" onclick="setInputFocus('unit')">
-          <span class="mini-label">UNIT PRODUCT</span>
-          <span id="mini-total" class="mini-val">0</span>
-        </div>
-        <div class="mini-row">
-          <div class="mini-item">
-            <span class="mini-label">CRATES FULL</span>
-            <span id="mini-full" class="mini-val res" onclick="copyToClipboard(this.innerText)">0</span>
+
+      <!-- ── Right column: Calculator + Mini boxes ──────────────────────── -->
+      <div class="calc-column">
+
+        <!--
+          calc-focus-area now wraps:
+            title
+            calc-hints-row → [hint-left] [main-display-row] [hint-right]
+        -->
+        <div class="calc-focus-area" id="calc-focus-area" onclick="setInputFocus('calc')">
+          <span class="mini-label">CALCULATOR</span>
+
+          <div class="calc-hints-row">
+
+            <!-- Left hint: second operand − 1 -->
+            <div class="calc-side-hint" id="hint-left" data-empty="true">
+              <span class="hint-value"  id="hint-left-val"></span>
+              <span class="hint-crates" id="hint-left-crates"></span>
+            </div>
+
+            <!-- Main calculator display -->
+            <div class="main-display-row">
+              <div id="display">0</div>
+              <div id="preview"></div>
+            </div>
+
+            <!-- Right hint: second operand + 1 -->
+            <div class="calc-side-hint" id="hint-right" data-empty="true">
+              <span class="hint-value"  id="hint-right-val"></span>
+              <span class="hint-crates" id="hint-right-crates"></span>
+            </div>
+
+          </div><!-- /.calc-hints-row -->
+        </div><!-- /.calc-focus-area -->
+
+        <div class="mini-box-display">
+          <div class="mini-item unit-row" id="unit-focus-area" onclick="setInputFocus('unit')">
+            <span class="mini-label">UNIT PRODUCT</span>
+            <span id="mini-total" class="mini-val">0</span>
           </div>
-          <div class="mini-item">
-            <span class="mini-label">LAST UNITS</span>
-            <span id="mini-rest" class="mini-val rem" onclick="copyToClipboard(this.innerText)">0</span>
-            <span id="mini-formula" style="color:#777; font-size:2.2rem"></span>
+          <div class="mini-row">
+            <div class="mini-item">
+              <span class="mini-label">CRATES FULL</span>
+              <span id="mini-full" class="mini-val res" onclick="copyToClipboard(this.innerText)">0</span>
+            </div>
+            <div class="mini-item">
+              <span class="mini-label">LAST UNITS</span>
+              <span id="mini-rest" class="mini-val rem" onclick="copyToClipboard(this.innerText)">0</span>
+              <span id="mini-formula" style="color:#777; font-size:2.2rem"></span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+
+      </div><!-- /.calc-column -->
+    </div><!-- /.screen-header -->
 
     <div class="keyboard" style="grid-template-rows: repeat(2, 1fr);">
       <button class="btn-clean-total" onclick="clsTotal()"><span class="f-hint">TOTAL</span>Clean T</button>
       <button class="btn-clear"       onclick="cls()"><span class="f-hint">ESC / END</span>Clean</button>
       <button class="btn-del"         onclick="del()"><span class="f-hint">DEL</span>⌫</button>
-      <button class="btn-op"          onclick="press('+')"><span class="f-hint">F1</span>+</button>
-      <button class="btn-op"          onclick="press('-')"><span class="f-hint">F2</span>−</button>
-      <button class="btn-op"          onclick="press('*')"><span class="f-hint">F3</span>×</button>
-      <button class="btn-op"          onclick="press('/')"><span class="f-hint">F4</span>÷</button>
+      <button class="btn-op"          onclick="press('+')" ><span class="f-hint">F1</span>+</button>
+      <button class="btn-op"          onclick="press('-')" ><span class="f-hint">F2</span>−</button>
+      <button class="btn-op"          onclick="press('*')" ><span class="f-hint">F3</span>×</button>
+      <button class="btn-op"          onclick="press('/')" ><span class="f-hint">F4</span>÷</button>
     </div>
   </section>
 
@@ -153,17 +160,15 @@
     <!-- Step 1: Search product -->
     <div id="sped-step1" class="sped-step active-step">
 
-      <!--
-        .sped-barcode-row wraps the text input and the new camera button
-        in a flex row. The input keeps all its existing attributes untouched.
-      -->
       <div class="sped-barcode-row">
         <input
           type="text" inputmode="text" id="sped-barcode"
           placeholder="Scan barcode or type name..."
           autocorrect="off" autocapitalize="none"
-          spellcheck="false" autocomplete="new-password"
-          data-lpignore="true" data-form-type="other"
+          spellcheck="false"
+          autocomplete="off"
+          readonly
+          data-lpignore="true" data-form-type="other" data-1p-ignore="true"
         >
         <button
           id="sped-scan-btn"
@@ -172,10 +177,6 @@
           title="Scan barcode with camera"
           type="button"
         >
-          <!--
-            Inline SVG camera icon — no external file, renders everywhere,
-            works offline from first load.
-          -->
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
                viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.2"
@@ -198,6 +199,7 @@
         </label>
         <span class="toggle-label">Skip searched</span>
         <span id="history-filter-count" class="history-filter-count"></span>
+        <span id="sped-progress-counter"></span>
       </div>
 
       <div class="sped-actions">
@@ -219,15 +221,19 @@
       <input
         type="number" id="sped-qty"
         placeholder="Enter the amount" class="sped-input"
-        inputmode="decimal" autocomplete="new-password"
-        data-lpignore="true" data-form-type="other"
+        inputmode="decimal"
+        autocomplete="off"
+        readonly
+        data-lpignore="true" data-form-type="other" data-1p-ignore="true"
       >
       <h3 class="sped-title title-pull" style="margin-top:2px">Pull Forward Quantity</h3>
       <input
         type="number" id="pull-qty"
         placeholder="Enter pull qty (optional)" class="sped-input"
-        inputmode="decimal" autocomplete="new-password"
-        data-lpignore="true" data-form-type="other"
+        inputmode="decimal"
+        autocomplete="off"
+        readonly
+        data-lpignore="true" data-form-type="other" data-1p-ignore="true"
       >
       <div class="sped-actions-row">
         <button onclick="backSped()"    class="btn btn-gray">BACK</button>
@@ -245,6 +251,7 @@
           <div class="section-title">RESULT</div>
           <div id="calc-product-name" class="section-sub">Product Name</div>
         </div>
+        <span id="calc-header-barcode" class="section-header-barcode"></span>
       </div>
       <div class="card-grid" id="calc-row1">
         <div class="card">
@@ -294,6 +301,7 @@
             <div class="section-title">TODAY</div>
             <div id="pull-today-product" class="section-sub">Product Name</div>
           </div>
+          <span id="pull-today-header-barcode" class="section-header-barcode"></span>
         </div>
         <div class="card-grid" id="today-row1">
           <div class="card"><span class="card-label">UNIT PRODUCT</span><span id="pull-today-units" class="card-value">0</span></div>
@@ -319,6 +327,7 @@
             <div class="section-title">PULL</div>
             <div id="pull-pull-product" class="section-sub">Product Name</div>
           </div>
+          <span id="pull-pull-header-barcode" class="section-header-barcode"></span>
         </div>
         <div class="card-grid" id="pull-row1">
           <div class="card"><span class="card-label">PULL UNIT</span><span id="pull-pull-units" class="card-value">0</span></div>
@@ -380,15 +389,15 @@
 <div id="history-all-panel"    class="history-all-panel">
   <div class="history-all-header">
     <span class="history-all-title">☁️ HISTORY ALL</span>
-    <div class="history-all-actions">
-      <button onclick="toggleHistoryAllPanel()" class="btn-hall-close">✕ CLOSE</button>
+    <div class="history-all-actions" id="history-all-actions">
+      <button onclick="toggleHistoryAllPanel()" class="btn-hall-close" id="history-all-close-btn">✕ CLOSE</button>
     </div>
   </div>
   <div class="history-all-filter">
     <label for="history-all-from">FROM</label>
-    <input type="date" id="history-all-from" autocomplete="new-password">
+    <input type="date" id="history-all-from" autocomplete="off" data-lpignore="true" data-form-type="other" data-1p-ignore="true">
     <label for="history-all-to">TO</label>
-    <input type="date" id="history-all-to"   autocomplete="new-password">
+    <input type="date" id="history-all-to"   autocomplete="off" data-lpignore="true" data-form-type="other" data-1p-ignore="true">
     <button onclick="applyHistoryAllFilter()" class="btn-hall-apply">FILTER</button>
   </div>
   <div id="history-all-count" class="history-all-count">—</div>

@@ -1,11 +1,12 @@
 // ─── src/components/calculator.ts ────────────────────────────────────────────
 // Calculator state mutations and display rendering.
 
-import { OPS }            from '@/config/constants.ts';
-import { state, persistCalc } from '@/state/appState.ts';
+import { OPS }                  from '@/config/constants.ts';
+import { state, persistCalc }   from '@/state/appState.ts';
 import { safeEval, round1, round2 } from '@/utils/math.ts';
-import { haptic }         from '@/utils/dom.ts';
-import type { AppElements } from '@/types/index.ts';
+import { haptic }               from '@/utils/dom.ts';
+import type { AppElements }     from '@/types/index.ts';
+import { renderBoxStack }       from '@/components/boxStack.ts';
 
 let _el: AppElements;
 
@@ -127,12 +128,90 @@ function renderBoxDisplay(divisor: number): void {
   _el.miniFormula.textContent = '';
 }
 
+/* ── Side hints (±1 on the second operand of a multiplication) ───────────── */
+//
+// Shows two compact lateral panels flanking the main display:
+//   Left  → second operand - 1, with the full-crate count that would result
+//   Right → second operand + 1, with the full-crate count that would result
+//
+// Only active when:
+//   • calcVal contains exactly one '*' with a plain integer after it (e.g. "9*8")
+//   • boxVal holds a positive quantity
+//
+// IDs expected in HTML:
+//   #hint-left-val   #hint-left-crates
+//   #hint-right-val  #hint-right-crates
+
+function renderSideHints(): void {
+  const leftVal    = document.getElementById('hint-left-val');
+  const leftCr     = document.getElementById('hint-left-crates');
+  const rightVal   = document.getElementById('hint-right-val');
+  const rightCr    = document.getElementById('hint-right-crates');
+  const hintLeft   = document.getElementById('hint-left');
+  const hintRight  = document.getElementById('hint-right');
+
+  if (!leftVal || !leftCr || !rightVal || !rightCr) return;
+
+  const clear = (): void => {
+    leftVal.textContent   = '';
+    leftCr.textContent    = '';
+    rightVal.textContent  = '';
+    rightCr.textContent   = '';
+    hintLeft?.setAttribute('data-empty', 'true');
+    hintRight?.setAttribute('data-empty', 'true');
+  };
+
+  const qty     = parseFloat(state.boxVal) || 0;
+  const starIdx = state.calcVal.indexOf('*');
+
+  if (qty <= 0 || starIdx === -1) { clear(); return; }
+
+  const prefix    = state.calcVal.slice(0, starIdx + 1);  // e.g. "9*"
+  const secondStr = state.calcVal.slice(starIdx + 1).trim();
+
+  // Only handle a plain positive integer as the second operand
+  if (!/^\d+$/.test(secondStr)) { clear(); return; }
+
+  const secondNum = parseInt(secondStr, 10);
+  if (secondNum <= 0) { clear(); return; }
+
+  const leftN  = Math.max(1, secondNum - 1);
+  const rightN = secondNum + 1;
+
+  const leftDivisor  = safeEval(`${prefix}${leftN}`);
+  const rightDivisor = safeEval(`${prefix}${rightN}`);
+
+  if (!isNaN(leftDivisor) && leftDivisor > 0) {
+    leftVal.textContent  = String(leftN);
+    leftCr.textContent   = `${Math.floor(qty / leftDivisor)} cr`;
+    hintLeft?.removeAttribute('data-empty');
+  } else {
+    leftVal.textContent  = '';
+    leftCr.textContent   = '';
+    hintLeft?.setAttribute('data-empty', 'true');
+  }
+
+  if (!isNaN(rightDivisor) && rightDivisor > 0) {
+    rightVal.textContent = String(rightN);
+    rightCr.textContent  = `${Math.floor(qty / rightDivisor)} cr`;
+    hintRight?.removeAttribute('data-empty');
+  } else {
+    rightVal.textContent = '';
+    rightCr.textContent  = '';
+    hintRight?.setAttribute('data-empty', 'true');
+  }
+}
+
+/* ── Main refresh ────────────────────────────────────────────────────────── */
+
 export function refresh(): void {
   const result = evalCalc();
-  _el.display.textContent  = state.calcVal;
+  _el.display.textContent   = state.calcVal;
   _el.miniTotal.textContent = state.boxVal || '0';
   renderPreview(result);
   renderBoxDisplay(result);
+  renderSideHints();
+  renderBoxStack();
   persistCalc();
   adjustFontSize();
 }
@@ -149,8 +228,8 @@ export function adjustFontSize(): void {
     const minPx = 11;
     while (size > minPx && row.scrollWidth > row.clientWidth) {
       size -= 0.5;
-      _el.display.style.fontSize  = `${size}px`;
-      _el.preview.style.fontSize  = `${size * 0.82}px`;
+      _el.display.style.fontSize = `${size}px`;
+      _el.preview.style.fontSize = `${size * 0.82}px`;
     }
   });
 }

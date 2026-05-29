@@ -1,5 +1,6 @@
 // ─── src/components/msj.ts ────────────────────────────────────────────────────
 // Message overlay (MSJ tab) — fullscreen, rotatable text display.
+// Voice / microphone functionality has been removed.
 
 import { state }  from '@/state/appState.ts';
 import type { AppElements } from '@/types/index.ts';

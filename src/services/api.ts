@@ -8,7 +8,6 @@ import type {
   Product,
   ProductPage,
   RemoteHistoryEntry,
-  HistoryAllEntry,
   HistoryAllPage,
   SearchOptions,
   HistoryAllOptions,

@@ -1,13 +1,5 @@
 // ─── src/components/history/panel.ts ─────────────────────────────────────────
 // SPED scan history — local panel (localStorage + D1 sync).
-//
-// CHANGE LOG (history-row quick-jump):
-//   • Added HistoryClickFn type and _onHistoryClick callback slot.
-//   • Added setHistoryClickCallback() — called by initSped() to register the
-//     handler without creating a circular import.
-//   • renderHistoryList() now makes each row tappable:
-//       - clicking the barcode badge → copies to clipboard (existing behaviour)
-//       - clicking anywhere else on the row → closes panel + invokes callback
 
 import {
   getHistory,
@@ -17,28 +9,10 @@ import { copyToClipboard }   from '@/utils/clipboard.ts';
 import { haptic, findEl }    from '@/utils/dom.ts';
 import type { AppElements }  from '@/types/index.ts';
 
-let _el: AppElements;
 let _panelOpen = false;
 
-/* ── Callback slot (avoids circular import with sped/index.ts) ───────────── */
-
-type HistoryClickFn = (id: string, name: string) => void;
-let _onHistoryClick: HistoryClickFn | null = null;
-
-/**
- * Register the function that handles a history-row tap.
- * Called once from initSped() so panel.ts never imports sped/index.ts.
- *
- * @param fn  Receives the entry's barcode id and product name.
- */
-export function setHistoryClickCallback(fn: HistoryClickFn): void {
-  _onHistoryClick = fn;
-}
-
-/* ── Init ────────────────────────────────────────────────────────────────── */
-
-export function initHistoryPanel(el: AppElements): void {
-  _el = el;
+export function initHistoryPanel(_el: AppElements): void {
+  void _el; // reserved for future direct element access
 }
 
 /* ── Public API ──────────────────────────────────────────────────────────── */
@@ -55,6 +29,8 @@ export function toggleHistoryPanel(): void {
   } else {
     panel?.classList.remove('open');
     backdrop?.classList.remove('open');
+    // Notify SPED that the modal closed so it can return focus to #sped-barcode
+    document.dispatchEvent(new CustomEvent('modal:closed'));
   }
   haptic();
 }
@@ -63,6 +39,9 @@ export function clearHistory(): void {
   svcClearHistory();
   renderHistoryList();
   updateHistoryFilterCount();
+  // Also reset the progress total so the counter starts fresh
+  try { localStorage.removeItem('fw_sped_total'); } catch { /* ignore */ }
+  updateSpedProgressCounter();
   haptic();
 }
 
@@ -78,32 +57,40 @@ export function renderHistoryList(): void {
   }
 
   const frag = document.createDocumentFragment();
-
   history.forEach(entry => {
     const row = document.createElement('div');
-    // history-item-clickable adds `cursor:pointer` and a hover tint via CSS.
-    // If you prefer not to add a new class, add `row.style.cursor='pointer'`
-    // instead and keep a single class name.
     row.className = 'history-item history-item-clickable';
+    row.title     = 'Tap to re-load this product in SPED';
 
-    /* ── Time stamp ─────────────────────────────────────────────────────── */
+    // Click on the whole row → pre-fill SPED
+    row.addEventListener('click', e => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('history-barcode')) return;
+
+      if (_panelOpen) toggleHistoryPanel();
+
+      document.dispatchEvent(
+        new CustomEvent<{ productId: string }>('sped:prefill', {
+          detail: { productId: entry.id },
+        }),
+      );
+    });
+
     const timeEl = document.createElement('span');
     timeEl.className   = 'history-time';
     timeEl.textContent = entry.time;
 
-    /* ── Barcode badge — tap copies, does NOT navigate ───────────────────── */
     const barcodeEl = document.createElement('span');
     barcodeEl.className   = 'history-barcode';
     barcodeEl.textContent = entry.id;
     barcodeEl.title       = 'Tap to copy';
     barcodeEl.addEventListener('click', e => {
-      e.stopPropagation();   // ← prevents the row's click from firing
+      e.stopPropagation();
       copyToClipboard(entry.id);
       barcodeEl.classList.add('copied');
       setTimeout(() => barcodeEl.classList.remove('copied'), 800);
     });
 
-    /* ── Product name ───────────────────────────────────────────────────── */
     const nameEl = document.createElement('span');
     nameEl.className   = 'history-name';
     nameEl.textContent = entry.name || '—';
@@ -112,16 +99,25 @@ export function renderHistoryList(): void {
     infoCol.className = 'history-info-col';
     infoCol.append(barcodeEl, nameEl);
 
-    row.append(timeEl, infoCol);
+    // ── CC Qty / Pull Qty (mirrors historyAll display) ────────────────────
+    if (entry.qty !== null && entry.qty !== undefined) {
+      const qtyEl = document.createElement('span');
+      qtyEl.className = 'history-all-qty';
+      const parts = [`CC Qty: ${entry.qty}`];
+      if (entry.pullQty !== null && entry.pullQty !== undefined) {
+        parts.push(`Pull Qty: ${entry.pullQty}`);
+      }
+      qtyEl.textContent = parts.join('  |  ');
+      infoCol.append(qtyEl);
+    }
 
-    /* ── Row tap → close panel + jump to SPED step 2 ────────────────────── */
-    row.addEventListener('click', () => {
-      if (!_onHistoryClick) return;
-      // Close the panel first so the animation plays while the lookup runs.
-      if (_panelOpen) toggleHistoryPanel();
-      _onHistoryClick(entry.id, entry.name ?? '');
-    });
+    // Small arrow hint
+    const arrowEl = document.createElement('span');
+    arrowEl.className   = 'history-prefill-hint';
+    arrowEl.textContent = '→';
+    arrowEl.title       = 'Load in SPED';
 
+    row.append(timeEl, infoCol, arrowEl);
     frag.appendChild(row);
   });
 
@@ -131,12 +127,12 @@ export function renderHistoryList(): void {
 export function updateHistoryFilterCount(): void {
   const countEl = findEl('history-filter-count');
   if (!countEl) return;
-  const chk     = findEl<HTMLInputElement>('sped-filter-history');
+  const chk = findEl<HTMLInputElement>('sped-filter-history');
   const history = getHistory();
 
   if (chk?.checked && history.length > 0) {
-    countEl.textContent   = `(${history.length} skipped)`;
-    countEl.style.display = 'inline';
+    countEl.textContent    = `(${history.length} skipped)`;
+    countEl.style.display  = 'inline';
   } else {
     countEl.style.display = 'none';
   }
@@ -148,4 +144,29 @@ export function isFilterHistoryOn(): boolean {
 
 export function getHistoryIds(): string[] {
   return getHistory().map(h => String(h.id));
+}
+
+/* ── Progress counter ────────────────────────────────────────────────────── */
+
+/**
+ * Updates the #sped-progress-counter element.
+ * Shows "X done" when "Skip searched" is active and at least one product has been scanned.
+ */
+export function updateSpedProgressCounter(): void {
+  const el  = findEl('sped-progress-counter');
+  const chk = findEl<HTMLInputElement>('sped-filter-history');
+  if (!el) return;
+  
+  const filterOn = chk?.checked ?? false;
+  const done     = getHistory().length;
+  
+  if (!filterOn || done === 0) {
+    el.textContent   = '';
+    el.style.display = 'none';
+    return;
+  }
+  
+  // ✅ Eliminada la palabra "done". Si quieres mostrar solo el número, usa: `${done}`
+  el.textContent   = ''; 
+  el.style.display = 'inline';
 }

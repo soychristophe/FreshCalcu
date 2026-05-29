@@ -1,0 +1,560 @@
+/* ══════════════════════════════════════════════
+   FRESHWAYS PRO — speed.css
+   Speed Section · Steps 1-5
+   Scan Button · Suggestions · Result Cards
+   Bottom Buttons
+   ══════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════
+   SPEED CONTAINER & STEPS
+   ══════════════════════════════════════════════ */
+.sped-container {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px;
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sped-step   { display: none; flex-direction: column; gap: 8px; margin-top: 4px; }
+.active-step { display: flex; }
+
+.sped-title    { margin: 0; text-align: center; font-size: 1rem; }
+.title-primary { color: var(--primary); }
+.title-success { color: var(--success); }
+.title-pull    { color: #ff9f1c; }
+
+/* ── Modo búsqueda activa: oculta botones y toggle para dar más espacio ── */
+.sped-step.is-searching .btn-paste,
+.sped-step.is-searching .btn-history,
+.sped-step.is-searching .history-filter-row {
+  display: none !important;
+}
+
+/* ── Progress counter (inline, next to skip-searched) ── */
+#sped-progress-counter {
+  display: none;
+  font-size: .75rem;
+  color: #2ec4b6;
+  font-weight: 600;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════
+   SCAN BUTTON ROW
+   ══════════════════════════════════════════════ */
+.sped-barcode-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.sped-barcode-row #sped-barcode {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Camera / Scan button */
+.btn-scan-camera {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 14px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #4361ee;
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  transition: background .15s, transform .1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-scan-camera:hover  { background: #3451d1; }
+.btn-scan-camera:active { transform: scale(.96); }
+
+@media (max-width: 340px) {
+  .scan-btn-label { display: none; }
+}
+
+/* ══════════════════════════════════════════════
+   SPEED INPUTS
+   ══════════════════════════════════════════════ */
+.sped-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 1.4rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.sped-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(67,97,238,0.15);
+}
+
+#sped-barcode {
+  font-size: 1.2rem;
+  min-height: 50px;
+  padding: 10px 10px;
+  text-align: center;
+}
+
+.sped-product-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--primary);
+  text-align: center;
+  min-height: 0.2rem;
+  line-height: 1.2;
+}
+
+/* ══════════════════════════════════════════════
+   SPEED ACTIONS
+   ══════════════════════════════════════════════ */
+.sped-actions     { display: flex; flex-direction: column; gap: 5px; }
+.sped-actions-row { display: flex; gap: 5px; }
+
+/* Grid 2 columnas, 2 filas */
+.sped-actions-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.sped-spacer {
+  background: transparent;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════
+   SHARED BUTTONS
+   ══════════════════════════════════════════════ */
+.btn {
+  flex: 1;
+  padding: 8px 8px;
+  min-height: 50px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: white;
+  transition: opacity 0.2s;
+}
+
+.btn:active   { opacity: 0.8; }
+.btn-primary  { background: var(--primary); }
+.btn-success  { background: var(--success); }
+.btn-danger   { background: #ff4d4d; }
+.btn-gray     { background: #999; }
+
+.pull-placeholder { flex: 1; visibility: hidden; pointer-events: none; }
+
+.pull-forward-btn {
+  background: #ff9f1c;
+  color: white;
+  font-weight: 900;
+  border-radius: 8px;
+  padding: 10px 0;
+  width: auto;
+  margin-top: 0;
+}
+
+.pull-confirm-btn { background: #ff9f1c; color: white; }
+
+/* ══════════════════════════════════════════════
+   ERROR MESSAGE
+   ══════════════════════════════════════════════ */
+.error-message {
+  color: #ff4d4d;
+  font-weight: bold;
+  margin: 0;
+  text-align: center;
+  display: none;
+  font-size: 0.85rem;
+}
+
+/* ══════════════════════════════════════════════
+   SUGGESTIONS
+   ══════════════════════════════════════════════ */
+.suggestions-container {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  width: 100%;
+  z-index: 100;
+  color: #333;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.suggestion-item {
+  padding: 9px 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 0.95rem;
+  gap: 10px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:active      { background-color: #e0e0e0; }
+
+.sug-id   { font-weight: 800; color: var(--primary); flex-shrink: 0; }
+.sug-name { color: #444; }
+
+/* ══════════════════════════════════════════════
+   PRODUCT INFO
+   ══════════════════════════════════════════════ */
+.sped-product-info {
+  margin-top: 4px;
+  padding: 8px;
+  background: var(--display-bg);
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.sped-product-info h4 { margin: 0 0 8px 0; color: var(--text); font-size: 0.95rem; }
+
+.sped-formulas    { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+.sped-formula-tag {
+  background: white;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+.sped-barcode-badge {
+  display: inline-block;
+  background: #1a1a1a;
+  color: #c8ff00;
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════════
+   SPEED — Step 4: RESULT (cálculo normal)
+   ══════════════════════════════════════════════ */
+#sped-calc-result {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--today-bg);
+  padding: 5px 7px;
+  gap: 4px;
+}
+
+/* ══════════════════════════════════════════════
+   SPEED — Step 5: PULL RESULT (TODAY + PULL)
+   ══════════════════════════════════════════════ */
+#sped-pull-result {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Bloques TODAY / PULL ── */
+.section-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 7px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.today-block { background: var(--today-bg); }
+.pull-block  { background: var(--pull-bg); }
+
+/* ── Cabecera de sección ── */
+.section-header {
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 4px solid var(--accent-blue);
+  flex-shrink: 0;
+}
+
+.section-header.pull-header { border-left-color: var(--accent-green); }
+
+.section-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: #eef2ff;
+  flex-shrink: 0;
+}
+
+.section-icon.pull-icon { background: var(--accent-green); }
+
+.section-title { font-size: 15px; font-weight: 800; color: #1a1a1a; line-height: 1; }
+.section-sub   { font-size: 10px; color: #888; font-weight: 500; line-height: 1.2; }
+
+/* ── Título de sección clicable → migra datos a CALCU ── */
+.section-title-clickable {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.section-title-clickable:active {
+  opacity: 0.6;
+  background: rgba(0,0,0,0.06);
+}
+
+/* ── Grid de tarjetas ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.card-highlight {
+  background: var(--highlight-bg);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.card-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 4px;
+  min-height: 0;
+}
+
+.rem-half { border-bottom: 1px solid #f0d8b8; }
+
+/* ── Tipografía de tarjetas ── */
+.card-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.card-value {
+  font-weight: 800;
+  color: #1a1a1a;
+  font-size: 27px;
+  line-height: 1.1;
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: clip;
+  max-width: 100%;
+}
+
+.card-highlight .card-value { font-size: 19px; }
+
+.rem-half  .card-label { color: #c9860a; }
+.calc-half .card-label { color: #8a5500; }
+.calc-half .card-value { color: #8a5500; }
+
+/* ── Ajustes de altura — Step 4 & Step 5 ── */
+.section-block > .card-grid:nth-child(2) {
+  flex: 0 0 48px;
+  overflow: hidden;
+}
+
+.section-block > .card-grid:nth-child(3) {
+  flex: 1;
+  min-height: 0;
+}
+
+.section-block > .card-grid:nth-child(2) > .card:nth-child(1) .card-value { font-size: 31px; }
+.section-block > .card-grid:nth-child(2) > .card:nth-child(2) .card-value { font-size: 31px; }
+.section-block > .card-grid:nth-child(3) > .card:first-child .card-value  { font-size: 35px; }
+.rem-half  .card-value  { font-size: 34px; }
+.calc-half .card-value  { font-size: 25px; }
+
+/* ══════════════════════════════════════════════
+   BOTTOM BUTTONS
+   ══════════════════════════════════════════════ */
+.bottom-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 44px;
+  border-top: 1px solid #e8e8e8;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.btn-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  border-right: 1px solid #e8e8e8;
+  cursor: pointer;
+  height: 100%;
+}
+
+.btn-bottom:last-child { border-right: none; }
+
+/* ── NEW SPEED button ── */
+.btn-new-speed {
+  background: var(--primary);
+  color: white;
+  font-weight: 900;
+  font-size: 0.85rem;
+  border: none;
+  border-right: none !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 10px;
+}
+
+.btn-new-speed:active {
+  opacity: 0.8;
+  background: #fecaca;
+}
+
+/* ── Button icon circle ── */
+.btn-icon-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.icon-blue  { background: #EEF2FF; color: var(--accent-blue); }
+.icon-green { background: #ECFDF5; color: #10B981; }
+
+.btn-content   { display: flex; flex-direction: column; text-align: left; }
+.btn-top-text  { font-size: 7px; font-weight: 700; text-transform: uppercase; line-height: 1; }
+.btn-main-text { font-size: 10px; font-weight: 800; color: #1a1a1a; line-height: 1.2; }
+
+/* ── Botonera de 3 botones en una sola fila ── */
+.bottom-btns-3 {
+  display: flex;
+  flex-wrap: nowrap;
+  height: 44px;
+  border-top: 1px solid #e8e8e8;
+  background: #fff;
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.bottom-btns-3 .btn-bottom {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-right: 1px solid #e8e8e8;
+  height: 100%;
+}
+
+.bottom-btns-3 .btn-bottom:last-child { border-right: none; }
+
+.bottom-btns-3 .btn-icon-circle {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.bottom-btns-3 .btn-top-text  { font-size: 6px; line-height: 1.1; }
+
+.bottom-btns-3 .btn-main-text {
+  font-size: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.bottom-btns-3 .btn-new-speed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  padding: 0 5px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-right: none !important;
+  flex: 1 1 0%;
+}

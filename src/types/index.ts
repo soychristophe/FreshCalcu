@@ -23,10 +23,14 @@ export interface ProductPage {
 /** A single entry in the scan history (local + D1). */
 export interface HistoryEntry {
   /** D1 row id — undefined when the entry is local-only (offline). */
-  readonly rowId?: number;
-  readonly id:     string;   // barcode / product ID
-  readonly name:   string;
-  readonly time:   string;   // formatted local time string
+  readonly rowId?:   number;
+  readonly id:       string;   // barcode / product ID
+  readonly name:     string;
+  readonly time:     string;   // formatted local time string
+  /** CC Qty processed — set after processSped() completes. */
+  readonly qty?:     number | null;
+  /** Pull Forward Qty — set after processSped() completes. */
+  readonly pullQty?: number | null;
 }
 
 /** Shape returned by GET /api/history */
@@ -39,11 +43,11 @@ export interface RemoteHistoryEntry {
 
 /** A single entry in the full audit log (history-all). */
 export interface HistoryAllEntry {
-  readonly barcode_id:   string;
+  readonly barcode_id:  string;
   readonly product_name: string;
-  readonly scanned_at:   string;   // ISO timestamp
-  readonly qty:          number | null;
-  readonly pull_qty:     number | null;
+  readonly scanned_at:  string;   // ISO timestamp
+  readonly qty:         number | null;
+  readonly pull_qty:    number | null;
 }
 
 /** Shape returned by GET /api/history-all */
@@ -52,11 +56,34 @@ export interface HistoryAllPage {
   readonly total:   number;
 }
 
+/* ── Work sessions ────────────────────────────────────────────────────────── */
+
+/** A single scanned product entry within a work session. */
+export interface SessionEntry {
+  productId:   string;
+  productName: string;
+  qty:         number;
+  pullQty:     number | null;
+  formulaUsed: string;
+  timestamp:   string;   // ISO string
+}
+
+/** A complete work session (start → end of shift). */
+export interface WorkSession {
+  id:             string;
+  startedAt:      string;          // ISO string
+  endedAt:        string | null;   // null while session is active
+  scans:          number;
+  pullForwards:   number;
+  avgOperationMs: number;
+  entries:        SessionEntry[];
+}
+
 /* ── App state ────────────────────────────────────────────────────────────── */
 
-export type TabMode    = 'calc' | 'box' | 'msj' | 'sped';
-export type InputFocus = 'calc' | 'unit';
-export type SpedView   = 'step1' | 'step2' | 'calc-result' | 'pull-result';
+export type TabMode       = 'calc' | 'box' | 'msj' | 'sped';
+export type InputFocus    = 'calc' | 'unit';
+export type SpedView      = 'step1' | 'step2' | 'calc-result' | 'pull-result';
 
 /** Result of a single SPED formula calculation. */
 export interface SpedCalc {
@@ -90,7 +117,7 @@ export interface AppState {
   spedCurrentView:  SpedView;
 }
 
-/* ── API client options ──────────────────────────────────────────────────── */
+/* ── API client options ─────────────────────────────────────────────────── */
 
 export interface SearchOptions {
   limit?:   number;
@@ -156,7 +183,8 @@ export interface AppElements {
   spedStep2:       HTMLElement;
   spedCalcResult:  HTMLElement;
   spedPullResult:  HTMLElement;
-  spedScanBtn:     HTMLButtonElement;   // ← NEW: camera scan button
+  /** Optional: injected by barcode-scanner component when camera scan is enabled. */
+  spedScanBtn?:    HTMLButtonElement;
   secMain:         HTMLElement;
   secMsj:          HTMLElement;
   secSped:         HTMLElement;
@@ -167,4 +195,22 @@ export interface AppElements {
 export interface TabConfig {
   readonly sectionKey: keyof Pick<AppElements, 'secMain' | 'secMsj' | 'secSped'>;
   readonly display:    string;
+}
+
+/* ── Custom events ───────────────────────────────────────────────────────── */
+
+/**
+ * Fired by history panel and products panel when they close,
+ * so SPED can return focus to #sped-barcode if appropriate.
+ */
+declare global {
+  interface DocumentEventMap {
+    'modal:closed':  CustomEvent;
+    'sped:prefill':  CustomEvent<SpedPrefillDetail>;
+  }
+}
+
+export interface SpedPrefillDetail {
+  /** Product ID / barcode to pre-fill. */
+  productId: string;
 }

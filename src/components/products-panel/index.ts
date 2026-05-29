@@ -1,7 +1,6 @@
 // ─── src/components/products-panel/index.ts ──────────────────────────────────
 // Self-contained Products Panel.
 // Injects its own HTML, wires all events, calls the typed API.
-
 import {
   apiGetProductsPage,
   apiCreateProduct,
@@ -9,14 +8,13 @@ import {
   apiDeleteProduct,
   apiGetProduct,
 } from '@/services/api.ts';
-import { refreshProductCache }    from '@/services/productCache.ts';
+import { refreshProductCache, getCacheTimestamp } from '@/services/productCache.ts';
 import { transformValuesInput }   from '@/utils/format.ts';
 import { esc, findEl }            from '@/utils/dom.ts';
 import { DELETE_PIN }             from '@/config/constants.ts';
 import type { Product, ProductPage } from '@/types/index.ts';
 
 /* ── Module-private state ────────────────────────────────────────────────── */
-
 interface PanelState {
   page:        number;
   pages:       number;
@@ -38,7 +36,6 @@ const panelState: PanelState = {
 let _toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 /* ── Public init ─────────────────────────────────────────────────────────── */
-
 export function initProductsPanel(): void {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setup);
@@ -48,21 +45,20 @@ export function initProductsPanel(): void {
 }
 
 /* ── Setup ───────────────────────────────────────────────────────────────── */
-
 function setup(): void {
   injectHTML();
   bindEvents();
-  watchSearchState();
-  watchTabState();
+  watchFloatButtonsVisibility(); // ✅ Unificado y corregido
 }
 
 function bindEvents(): void {
   findEl('products-btn')?.addEventListener('click', openPanel);
-
+  
   const overlay = findEl('products-panel-overlay');
   overlay?.addEventListener('click', e => {
     if (e.target === overlay) closePanel();
   });
+
   findEl('pp-close')?.addEventListener('click', closePanel);
 
   // Swipe-down to close (handle only)
@@ -73,6 +69,7 @@ function bindEvents(): void {
     swipeX0 = e.touches[0]!.clientX;
     swipeActive = true;
   }, { passive: true });
+
   handle?.addEventListener('touchend', e => {
     if (!swipeActive) return;
     swipeActive = false;
@@ -93,6 +90,7 @@ function bindEvents(): void {
   findEl('pp-prev')?.addEventListener('click', () => {
     if (panelState.page > 1) { panelState.page--; void loadProducts(); }
   });
+
   findEl('pp-next')?.addEventListener('click', () => {
     if (panelState.page < panelState.pages) { panelState.page++; void loadProducts(); }
   });
@@ -100,11 +98,22 @@ function bindEvents(): void {
   findEl('pp-refresh-btn')?.addEventListener('click', () => void refreshPanel());
   findEl('pp-add-btn')?.addEventListener('click',     () => void openForm(null));
   findEl('pp-form-cancel')?.addEventListener('click', closeForm);
-
+  
   const formOverlay = findEl('pp-form-overlay');
   formOverlay?.addEventListener('click', e => { if (e.target === formOverlay) closeForm(); });
 
   findEl('pp-form-save')?.addEventListener('click', () => void saveProduct());
+
+  // Edit password popup
+  findEl('pp-editpwd-cancel')?.addEventListener('click',  closeEditPasswordPopup);
+  findEl('pp-editpwd-confirm')?.addEventListener('click', () => void confirmEditPassword());
+  findEl<HTMLInputElement>('pp-editpwd-pin')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') void confirmEditPassword();
+  });
+  const editPwdOverlay = findEl('pp-editpwd-overlay');
+  editPwdOverlay?.addEventListener('click', e => {
+    if (e.target === editPwdOverlay) closeEditPasswordPopup();
+  });
 
   // Delete popup
   findEl('pp-delete-cancel')?.addEventListener('click',  closeDeletePopup);
@@ -112,6 +121,7 @@ function bindEvents(): void {
   findEl<HTMLInputElement>('pp-delete-pin')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') void executeDelete();
   });
+
   const deleteOverlay = findEl('pp-delete-overlay');
   deleteOverlay?.addEventListener('click', e => {
     if (e.target === deleteOverlay) closeDeletePopup();
@@ -124,36 +134,37 @@ function bindEvents(): void {
   });
 }
 
-/* ── Observers ───────────────────────────────────────────────────────────── */
-
-function watchSearchState(): void {
-  const spedStep1 = findEl('sped-step1');
-  if (!spedStep1) return;
-  const container = findEl('sped-float-btns');
-  new MutationObserver(() => {
-    const isSearching = spedStep1.classList.contains('is-searching');
-    container?.classList.toggle('hidden', isSearching);
-  }).observe(spedStep1, { attributes: true, attributeFilter: ['class'] });
-}
-
-function watchTabState(): void {
+/* ── Observers (UNIFICADO) ───────────────────────────────────────────────── */
+function watchFloatButtonsVisibility(): void {
   const container = findEl('sped-float-btns');
   const secSped   = findEl('sec-sped');
-  if (!secSped || !container) return;
-  const isSpedVisible = (): boolean =>
-    secSped.style.display !== 'none' && secSped.style.display !== '';
-  new MutationObserver(() => {
-    container.classList.toggle('hidden', !isSpedVisible());
-  }).observe(secSped, { attributes: true, attributeFilter: ['style', 'hidden'] });
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() =>
-      container.classList.toggle('hidden', !isSpedVisible()),
-    ),
-  );
+  const spedStep1 = findEl('sped-step1');
+
+  if (!container || !secSped || !spedStep1) return;
+
+  const update = () => {
+    const isSpedTabActive = secSped.style.display !== 'none' && secSped.style.display !== '';
+    const isSearching     = spedStep1.classList.contains('is-searching');
+    const isStep1Visible  = spedStep1.style.display !== 'none' && spedStep1.style.display !== '';
+
+    // ✅ Los botones SOLO deben mostrarse si:
+    // 1. Estamos en la pestaña SPED
+    // 2. La vista step1 está activa (no calc-result/pull-result)
+    // 3. NO estamos buscando
+    const shouldHide = !isSpedTabActive || isSearching || !isStep1Visible;
+    container.classList.toggle('hidden', shouldHide);
+  };
+
+  // Observa cambios en la pestaña SPED
+  new MutationObserver(update).observe(secSped, { attributes: true, attributeFilter: ['style', 'hidden'] });
+  // Observa cambios en step1 (clase is-searching + estilo display)
+  new MutationObserver(update).observe(spedStep1, { attributes: true, attributeFilter: ['class', 'style'] });
+
+  // Estado inicial
+  update();
 }
 
 /* ── Panel open / close ──────────────────────────────────────────────────── */
-
 function openPanel(): void {
   findEl('products-panel-overlay')?.classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -162,15 +173,46 @@ function openPanel(): void {
   const search = findEl<HTMLInputElement>('pp-search');
   if (search) search.value = '';
   void loadProducts();
+  renderCacheFreshness();
 }
 
 function closePanel(): void {
   findEl('products-panel-overlay')?.classList.remove('open');
   document.body.style.overflow = '';
+  // Notify SPED so it can return focus to #sped-barcode if in step1
+  document.dispatchEvent(new CustomEvent('modal:closed'));
+}
+
+/* ── Cache freshness badge ───────────────────────────────────────────────── */
+function renderCacheFreshness(): void {
+  const el = findEl('pp-cache-freshness');
+  if (!el) return;
+  const ts = getCacheTimestamp();
+  if (!ts) {
+    el.textContent          = 'Never updated';
+    el.dataset['freshness'] = 'stale';
+    return;
+  }
+  const diffMs  = Date.now() - new Date(ts).getTime();
+  const diffMin = Math.round(diffMs / 60_000);
+  const diffH   = Math.round(diffMs / 3_600_000);
+  let label: string;
+  let freshness: 'fresh' | 'aging' | 'stale';
+  if (diffMin < 1) {
+    label = 'Just updated'; freshness = 'fresh';
+  } else if (diffMin < 60) {
+    label = `Updated ${diffMin} min ago`; freshness = 'fresh';
+  } else if (diffH < 24) {
+    label = `Updated ${diffH} h ago`; freshness = 'aging';
+  } else {
+    const diffDays = Math.round(diffMs / 86_400_000);
+    label = `Updated ${diffDays} day${diffDays !== 1 ? 's' : ''} ago`; freshness = 'stale';
+  }
+  el.textContent          = label;
+  el.dataset['freshness'] = freshness;
 }
 
 /* ── Products list ───────────────────────────────────────────────────────── */
-
 async function loadProducts(): Promise<void> {
   const listEl     = findEl('pp-list-body');
   const countEl    = findEl('pp-count');
@@ -178,11 +220,9 @@ async function loadProducts(): Promise<void> {
   const prevBtn    = findEl<HTMLButtonElement>('pp-prev');
   const nextBtn    = findEl<HTMLButtonElement>('pp-next');
   const pagination = findEl('pp-pagination');
-  if (!listEl) return;
 
-  listEl.innerHTML = `<div class="pp-state">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32 2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12M18.66 5.34l-2.12 2.12"/></svg>
-    Loading...</div>`;
+  if (!listEl) return;
+  listEl.innerHTML = `<div class="pp-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32 2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12M18.66 5.34l-2.12 2.12"/></svg> Loading...</div>`;
 
   try {
     const data: ProductPage = await apiGetProductsPage(
@@ -195,18 +235,26 @@ async function loadProducts(): Promise<void> {
     if (countEl) countEl.textContent = `(${panelState.total})`;
 
     if (!data.products?.length) {
-      listEl.innerHTML = `<div class="pp-state">
-        <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        No products</div>`;
+      listEl.innerHTML = `<div class="pp-state"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>No products</div>`;
     } else {
       listEl.innerHTML = data.products.map(productRow).join('');
       listEl.querySelectorAll<HTMLButtonElement>('.pp-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => void openForm(btn.dataset['id'] ?? null));
       });
       listEl.querySelectorAll<HTMLButtonElement>('.pp-del-btn').forEach(btn => {
-        btn.addEventListener('click', () =>
-          confirmDelete(btn.dataset['id'] ?? '', btn.dataset['name'] ?? ''),
-        );
+        btn.addEventListener('click', () => confirmDelete(btn.dataset['id'] ?? '', btn.dataset['name'] ?? ''));
+      });
+      listEl.querySelectorAll<HTMLElement>('.pp-barcode-copy').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          const barcode = el.dataset['barcode'] ?? '';
+          if (!barcode) return;
+          navigator.clipboard.writeText(barcode).then(() => {
+            showToast(`Copied: ${barcode}`, 'success');
+          }).catch(() => {
+            showToast('Could not copy', 'error');
+          });
+        });
       });
     }
 
@@ -214,25 +262,21 @@ async function loadProducts(): Promise<void> {
     if (pageInfo)   pageInfo.textContent = `${panelState.page} / ${panelState.pages}`;
     if (prevBtn)    prevBtn.disabled = panelState.page <= 1;
     if (nextBtn)    nextBtn.disabled = panelState.page >= panelState.pages;
-
   } catch {
-    listEl.innerHTML = `<div class="pp-state" style="color:#ff7070">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Error loading products</div>`;
+    listEl.innerHTML = `<div class="pp-state" style="color:#ff7070"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Error loading products</div>`;
   }
 }
 
 function productRow(p: Product): string {
   const valuesText = Array.isArray(p.values) ? p.values.join(', ') : '';
   const skuTag = p.sku   ? `<span class="pp-tag pp-tag-sku">SKU: ${esc(p.sku)}</span>` : '';
-  const valTag = valuesText
-    ? `<span class="pp-tag pp-tag-values" title="${esc(valuesText)}">${esc(valuesText)}</span>` : '';
-
+  const valTag = valuesText ? `<span class="pp-tag pp-tag-values" title="${esc(valuesText)}">${esc(valuesText)}</span>` : '';
+  
   return `<div class="pp-item">
     <div class="pp-item-info">
       <div class="pp-item-name">${esc(p.name)}</div>
       <div class="pp-item-meta">
-        <span class="pp-tag pp-tag-id">${esc(p.id)}</span>
+        <span class="pp-tag pp-tag-id pp-barcode-copy" data-barcode="${esc(p.id)}" title="Tap to copy barcode">📋 ${esc(p.id)}</span>
         ${skuTag}${valTag}
       </div>
     </div>
@@ -247,9 +291,48 @@ function productRow(p: Product): string {
   </div>`;
 }
 
-/* ── Form ────────────────────────────────────────────────────────────────── */
+/* ── Edit password ───────────────────────────────────────────────────────── */
+const EDIT_PIN = '1986';
+let _pendingEditId: string | null = null;
 
+function openEditPasswordPopup(id: string): void {
+  _pendingEditId = id;
+  const overlay  = findEl('pp-editpwd-overlay');
+  const pinInput = findEl<HTMLInputElement>('pp-editpwd-pin');
+  const errorEl  = findEl('pp-editpwd-error');
+  if (!overlay) return;
+  if (pinInput)  pinInput.value = '';
+  if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+  overlay.classList.add('open');
+  setTimeout(() => pinInput?.focus(), 200);
+}
+
+function closeEditPasswordPopup(): void {
+  findEl('pp-editpwd-overlay')?.classList.remove('open');
+  _pendingEditId = null;
+}
+
+async function confirmEditPassword(): Promise<void> {
+  const pinInput = findEl<HTMLInputElement>('pp-editpwd-pin');
+  const errorEl  = findEl('pp-editpwd-error');
+  const pin = pinInput?.value?.trim() ?? '';
+  if (pin !== EDIT_PIN) {
+    if (errorEl) { errorEl.textContent = 'Incorrect password'; errorEl.style.display = 'block'; }
+    pinInput?.select();
+    return;
+  }
+  const id = _pendingEditId;
+  closeEditPasswordPopup();
+  if (id) await _doOpenForm(id);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
 async function openForm(id: string | null): Promise<void> {
+  if (id) { openEditPasswordPopup(id); return; }
+  await _doOpenForm(null);
+}
+
+async function _doOpenForm(id: string | null): Promise<void> {
   panelState.editingId = id;
   const overlay   = findEl('pp-form-overlay');
   const title     = findEl('pp-form-title');
@@ -269,7 +352,6 @@ async function openForm(id: string | null): Promise<void> {
     if (title) title.textContent = 'Edit product';
     inputId.disabled = true;
     if (fieldId) (fieldId as HTMLElement).style.opacity = '0.5';
-
     try {
       const p = await apiGetProduct(id);
       if (p) {
@@ -303,6 +385,7 @@ async function saveProduct(): Promise<void> {
   const inputName = findEl<HTMLInputElement>('pp-input-name');
   const inputSku  = findEl<HTMLInputElement>('pp-input-sku');
   const inputVals = findEl<HTMLInputElement>('pp-input-values');
+
   if (!saveBtn || !inputId || !inputName || !inputSku || !inputVals) return;
 
   const id   = inputId.value.trim();
@@ -321,9 +404,18 @@ async function saveProduct(): Promise<void> {
 
   try {
     if (panelState.editingId) {
-      await apiUpdateProduct(panelState.editingId, { name, sku: sku || undefined, values });
+      await apiUpdateProduct(panelState.editingId, {
+        name,
+        values,
+        ...(sku ? { sku } : {}),
+      });
     } else {
-      await apiCreateProduct({ id, name, sku: sku || undefined, values });
+      await apiCreateProduct({
+        id,
+        name,
+        values,
+        ...(sku ? { sku } : {}),
+      });
     }
     showToast(panelState.editingId ? 'Product updated' : 'Product created', 'success');
     closeForm();
@@ -337,30 +429,25 @@ async function saveProduct(): Promise<void> {
 }
 
 /* ── Refresh ─────────────────────────────────────────────────────────────── */
-
 async function refreshPanel(): Promise<void> {
   const btn = findEl<HTMLButtonElement>('pp-refresh-btn');
   if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
-  try {
-    await refreshProductCache();
-  } catch {
-    /* silent */
-  }
+  try { await refreshProductCache(); } catch { /* silent */ }
   await loadProducts();
   if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
+  renderCacheFreshness();
   showToast('Products updated', 'success');
 }
 
 /* ── Delete ──────────────────────────────────────────────────────────────── */
-
 function confirmDelete(id: string, name: string): void {
   const overlay    = findEl('pp-delete-overlay');
   const titleEl    = findEl('pp-delete-title');
   const pinInput   = findEl<HTMLInputElement>('pp-delete-pin');
   const errorEl    = findEl('pp-delete-error');
   const confirmBtn = findEl<HTMLButtonElement>('pp-delete-confirm');
-  if (!overlay) return;
 
+  if (!overlay) return;
   if (titleEl)    titleEl.textContent  = `Delete "${name}"`;
   if (pinInput)   pinInput.value       = '';
   if (errorEl)  { errorEl.style.display = 'none'; errorEl.textContent = ''; }
@@ -407,7 +494,6 @@ async function executeDelete(): Promise<void> {
 }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
-
 function showToast(msg: string, type: 'success' | 'error' | '' = ''): void {
   const toast = findEl('pp-toast');
   if (!toast) return;
@@ -418,10 +504,8 @@ function showToast(msg: string, type: 'success' | 'error' | '' = ''): void {
 }
 
 /* ── HTML injection ──────────────────────────────────────────────────────── */
-
 function injectHTML(): void {
   if (findEl('products-panel-overlay')) return; // already injected
-
   document.body.insertAdjacentHTML('beforeend', `
     <div id="sped-float-btns" class="hidden">
       <button id="products-btn" aria-label="View product catalog">
@@ -430,7 +514,6 @@ function injectHTML(): void {
       </button>
       <button id="history-all-btn" aria-label="View full cloud history">☁️ History All</button>
     </div>
-
     <div id="products-panel-overlay" role="dialog" aria-modal="true" aria-label="Product catalog">
       <div id="products-panel">
         <div class="pp-handle"><span></span></div>
@@ -451,6 +534,7 @@ function injectHTML(): void {
             </button>
           </div>
         </div>
+        <div class="pp-cache-freshness-bar"><span id="pp-cache-freshness" class="pp-cache-freshness" data-freshness="stale">—</span></div>
         <div class="pp-search-bar">
           <div class="pp-search-wrap">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -459,13 +543,9 @@ function injectHTML(): void {
         </div>
         <div class="pp-list" id="pp-list-body"><div class="pp-state">Opening…</div></div>
         <div class="pp-pagination" id="pp-pagination" style="display:none">
-          <button class="pp-page-btn" id="pp-prev" disabled>
-            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
+          <button class="pp-page-btn" id="pp-prev" disabled><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
           <span class="pp-page-info" id="pp-page-info">1 / 1</span>
-          <button class="pp-page-btn" id="pp-next" disabled>
-            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+          <button class="pp-page-btn" id="pp-next" disabled><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
       </div>
     </div>
@@ -488,7 +568,7 @@ function injectHTML(): void {
         <div class="pp-field">
           <label class="pp-label" for="pp-input-values">Values <span style="opacity:0.5">(Separated by comma)</span></label>
           <input class="pp-input" id="pp-input-values" type="text" placeholder="9*6, 9*7, 9*8" autocomplete="off">
-          <p class="pp-input-hint">e.g.: 9*6, 9*7  →  saved as ["9*6","9*7"]</p>
+          <p class="pp-input-hint">e.g.: 9*6, 9*7  →  saved as ["9*6", "9*7"]</p>
         </div>
         <div class="pp-form-actions">
           <button class="pp-btn-cancel" id="pp-form-cancel">Cancel</button>
@@ -497,19 +577,32 @@ function injectHTML(): void {
       </div>
     </div>
 
-    <div id="pp-toast"></div>
-
     <div id="pp-delete-overlay">
       <div id="pp-delete-modal">
         <p class="pp-delete-modal-title" id="pp-delete-title">Delete product</p>
         <p class="pp-delete-modal-sub">Enter the password to confirm</p>
         <input id="pp-delete-pin" class="pp-input pp-delete-pin-input"
-               type="password" inputmode="numeric" maxlength="6"
-               placeholder="••••" autocomplete="new-password">
+              type="password" inputmode="numeric" maxlength="6"
+              placeholder="••••" autocomplete="new-password">
         <p class="pp-delete-error" id="pp-delete-error" style="display:none"></p>
         <div class="pp-form-actions" style="margin-top:1rem">
           <button class="pp-btn-cancel"                    id="pp-delete-cancel">Cancel</button>
           <button class="pp-btn-save pp-btn-delete-confirm" id="pp-delete-confirm">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pp-editpwd-overlay">
+      <div id="pp-editpwd-modal">
+        <p class="pp-delete-modal-title">Edit product</p>
+        <p class="pp-delete-modal-sub">Enter the password to edit</p>
+        <input id="pp-editpwd-pin" class="pp-input pp-delete-pin-input"
+              type="password" inputmode="numeric" maxlength="6"
+              placeholder="••••" autocomplete="new-password">
+        <p class="pp-delete-error" id="pp-editpwd-error" style="display:none"></p>
+        <div class="pp-form-actions" style="margin-top:1rem">
+          <button class="pp-btn-cancel" id="pp-editpwd-cancel">Cancel</button>
+          <button class="pp-btn-save"   id="pp-editpwd-confirm">Continue</button>
         </div>
       </div>
     </div>

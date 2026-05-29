@@ -657,3 +657,77 @@
 .pp-btn-delete-confirm:active {
   background: #a93226 !important;
 }
+
+/* ── Popup de contraseña para editar ────────────────────────────────────── */
+#pp-editpwd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#pp-editpwd-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#pp-editpwd-modal {
+  background: #1e1e2e;
+  border: 1px solid rgba(67, 97, 238, 0.35);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 320px;
+  padding: 1.4rem 1.25rem 1.25rem;
+  transform: scale(0.94);
+  transition: transform 0.2s;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+#pp-editpwd-overlay.open #pp-editpwd-modal {
+  transform: scale(1);
+}
+
+#pp-editpwd-modal .pp-delete-modal-title {
+  color: #4361ee;
+}
+
+/* ── Barcode copyable tag ────────────────────────────────────────────────── */
+.pp-barcode-copy {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, opacity 0.15s;
+}
+.pp-barcode-copy:hover  { opacity: 0.75; }
+.pp-barcode-copy:active { opacity: 0.5; }
+
+/* ── Section header barcode badge ─────────────────────────────────────────── */
+.section-header-barcode {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-family: 'DM Mono', monospace;
+  color: rgba(0,0,0,0.45);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding: 2px 6px;
+  background: rgba(0,0,0,0.07);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Cache freshness bar ─────────────────────────────────────────────────── */
+.pp-cache-freshness-bar {
+  padding: 2px 16px 6px;
+  font-size: .72rem;
+}
+
+.pp-cache-freshness[data-freshness="fresh"] { color: #2ec4b6; }
+.pp-cache-freshness[data-freshness="aging"] { color: #f4a261; }
+.pp-cache-freshness[data-freshness="stale"] { color: #ef233c; }

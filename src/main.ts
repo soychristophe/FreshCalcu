@@ -1,5 +1,12 @@
 // ─── CSS (Vite bundles and hashes these automatically) ─────────────────────
-import '@/styles/styles.css';
+import '@/styles/base.css';
+import '@/styles/layout.css';
+import '@/styles/pwa.css';
+import '@/styles/calculator.css';
+import '@/styles/keyboard.css';
+import '@/styles/msj.css';
+import '@/styles/speed.css';
+import '@/styles/history.css';
 import '@/styles/products-panel.css';
 
 // ─── src/main.ts ──────────────────────────────────────────────────────────────
@@ -13,6 +20,7 @@ import { copyToClipboard }   from '@/utils/clipboard.ts';
 import { initPwa }           from '@/components/pwa.ts';
 import { initCalculator, refresh, adjustFontSize, press, del, cls, clsTotal, setInputFocus }
                              from '@/components/calculator.ts';
+import { initBoxStack }      from '@/components/boxStack.ts';
 import { initMsj, showMsj, toggleRotation }
                              from '@/components/msj.ts';
 import { initNavigation, switchTab }
@@ -92,6 +100,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Core components
   initPwa(el);
   initCalculator(el);
+  initBoxStack();
   initMsj(el);
   initHistoryPanel(el);
 

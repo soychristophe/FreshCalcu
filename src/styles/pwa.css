@@ -1,0 +1,78 @@
+/* ══════════════════════════════════════════════
+   FRESHWAYS PRO — pwa.css
+   Install Banner · Offline Badge · Copy Toast
+   ══════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════
+   INSTALL BANNER
+   ══════════════════════════════════════════════ */
+#install-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary);
+  color: white;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+#install-banner.visible { display: flex; }
+
+#install-banner button {
+  border: 2px solid white;
+  background: transparent;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-weight: 800;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+#install-banner .dismiss {
+  border: none;
+  opacity: 0.7;
+  padding: 4px 6px;
+}
+
+/* ══════════════════════════════════════════════
+   BADGES & TOAST
+   ══════════════════════════════════════════════ */
+#offline-badge {
+  display: none;
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 999;
+  pointer-events: none;
+}
+
+#offline-badge.visible { display: block; }
+
+#copy-toast {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+#copy-toast.show { opacity: 1; }
