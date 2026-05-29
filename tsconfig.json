@@ -5,6 +5,9 @@
     "lib":         ["ES2022", "DOM", "DOM.Iterable"],
     "module":      "ESNext",
     "moduleResolution": "Bundler",
+    
+    /* ── Añade esto para que reconozca D1 y Workers ─────────────────── */
+    "types":       ["@cloudflare/workers-types"],
 
     /* ── Strict type checking ───────────────────────────────────────── */
     "strict":                        true,

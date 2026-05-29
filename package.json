@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-"scripts": {
+  "scripts": {
     "dev": "vite",
     "clean": "rm -rf dist freshways-pro.zip",
     "build": "npm run clean && tsc --noEmit && vite build && bestzip freshways-pro.zip dist/*",
@@ -14,6 +14,7 @@
     "format": "prettier --write \"src/**/*.{ts,css}\" index.html"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260529.1",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "bestzip": "^3.0.1",
