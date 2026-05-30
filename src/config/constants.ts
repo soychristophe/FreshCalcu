@@ -10,8 +10,7 @@ import type { TabConfig, TabMode } from '@/types/index.ts';
  * Override via VITE_API_BASE in .env.local for local dev proxying.
  */
 export const API_BASE: string =
-  import.meta.env['VITE_API_BASE'] ?? 'https://freshways-api.soychristophe.workers.dev';
-
+  import.meta.env['VITE_API_BASE'] ?? 'https://freshcalcu.soychristophe.workers.dev';
 /** Delete-product PIN. Stored in env, not in source code. */
 export const DELETE_PIN: string = import.meta.env['VITE_DELETE_PIN'] ?? '1986';
 
