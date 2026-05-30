@@ -94,7 +94,7 @@ async function handleSearchProducts(req: Request, env: Env): Promise<Response> {
 
   if (exclude.length === 0) {
     const rows = await env.DB
-      .prepare(`SELECT id, name, sku, values FROM products WHERE name LIKE ?1 OR id LIKE ?1 LIMIT ?2`)
+      .prepare(`SELECT id, name, sku, "values" FROM products WHERE name LIKE ?1 OR id LIKE ?1 LIMIT ?2`)
       .bind(like, limit)
       .all<{ id: string; name: string; sku: string | null; values: string }>();
 
@@ -104,7 +104,7 @@ async function handleSearchProducts(req: Request, env: Env): Promise<Response> {
   const placeholders = exclude.map((_, i) => `?${i + 3}`).join(', ');
   const rows = await env.DB
     .prepare(
-      `SELECT id, name, sku, values FROM products
+      `SELECT id, name, sku, "values" FROM products
        WHERE (name LIKE ?1 OR id LIKE ?1)
          AND id NOT IN (${placeholders})
        LIMIT ?2`,
@@ -132,7 +132,7 @@ async function handleGetAllProducts(req: Request, env: Env): Promise<Response> {
       .bind(like)
       .first<{ total: number }>())!;
     const res = await env.DB
-      .prepare(`SELECT id, name, sku, values FROM products WHERE name LIKE ?1 OR id LIKE ?1 ORDER BY name LIMIT ?2 OFFSET ?3`)
+      .prepare(`SELECT id, name, sku, "values" FROM products WHERE name LIKE ?1 OR id LIKE ?1 ORDER BY name LIMIT ?2 OFFSET ?3`)
       .bind(like, limit, offset)
       .all<{ id: string; name: string; sku: string | null; values: string }>();
     rows = res.results;
@@ -141,7 +141,7 @@ async function handleGetAllProducts(req: Request, env: Env): Promise<Response> {
       .prepare(`SELECT COUNT(*) AS total FROM products`)
       .first<{ total: number }>())!;
     const res = await env.DB
-      .prepare(`SELECT id, name, sku, values FROM products ORDER BY name LIMIT ?1 OFFSET ?2`)
+      .prepare(`SELECT id, name, sku, "values" FROM products ORDER BY name LIMIT ?1 OFFSET ?2`)
       .bind(limit, offset)
       .all<{ id: string; name: string; sku: string | null; values: string }>();
     rows = res.results;
@@ -158,7 +158,7 @@ async function handleGetAllProducts(req: Request, env: Env): Promise<Response> {
 
 async function handleGetProduct(id: string, env: Env): Promise<Response> {
   const row = await env.DB
-    .prepare(`SELECT id, name, sku, values FROM products WHERE id = ?1`)
+    .prepare(`SELECT id, name, sku, "values" FROM products WHERE id = ?1`)
     .bind(id)
     .first<{ id: string; name: string; sku: string | null; values: string }>();
 
@@ -173,7 +173,7 @@ async function handleCreateProduct(req: Request, env: Env): Promise<Response> {
   const valuesJson = JSON.stringify(body.values ?? []);
   try {
     await env.DB
-      .prepare(`INSERT INTO products (id, name, sku, values) VALUES (?1, ?2, ?3, ?4)`)
+      .prepare(`INSERT INTO products (id, name, sku, "values") VALUES (?1, ?2, ?3, ?4)`)
       .bind(body.id, body.name, body.sku ?? null, valuesJson)
       .run();
   } catch (e: unknown) {
@@ -183,7 +183,7 @@ async function handleCreateProduct(req: Request, env: Env): Promise<Response> {
   }
 
   const created = await env.DB
-    .prepare(`SELECT id, name, sku, values FROM products WHERE id = ?1`)
+    .prepare(`SELECT id, name, sku, "values" FROM products WHERE id = ?1`)
     .bind(body.id)
     .first<{ id: string; name: string; sku: string | null; values: string }>();
 
@@ -194,7 +194,7 @@ async function handleUpdateProduct(id: string, req: Request, env: Env): Promise<
   const body = await req.json<{ name?: string; sku?: string; values?: string[] }>();
 
   const current = await env.DB
-    .prepare(`SELECT id, name, sku, values FROM products WHERE id = ?1`)
+    .prepare(`SELECT id, name, sku, "values" FROM products WHERE id = ?1`)
     .bind(id)
     .first<{ id: string; name: string; sku: string | null; values: string }>();
 
@@ -207,12 +207,12 @@ async function handleUpdateProduct(id: string, req: Request, env: Env): Promise<
     : current.values;
 
   await env.DB
-    .prepare(`UPDATE products SET name = ?1, sku = ?2, values = ?3 WHERE id = ?4`)
+    .prepare(`UPDATE products SET name = ?1, sku = ?2, "values" = ?3 WHERE id = ?4`)
     .bind(newName, newSku, newValues, id)
     .run();
 
   const updated = await env.DB
-    .prepare(`SELECT id, name, sku, values FROM products WHERE id = ?1`)
+    .prepare(`SELECT id, name, sku, "values" FROM products WHERE id = ?1`)
     .bind(id)
     .first<{ id: string; name: string; sku: string | null; values: string }>();
 
