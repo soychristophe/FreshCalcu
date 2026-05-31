@@ -5,6 +5,7 @@
 import { TAB_CONFIG, FKEY_TABS, FKEY_OPS, OPS } from '@/config/constants.ts';
 import { state }  from '@/state/appState.ts';
 import { haptic } from '@/utils/dom.ts';
+import { setInputFocus } from '@/components/calculator.ts';
 import type { AppElements, TabMode } from '@/types/index.ts';
 
 /* These are set by initNavigation and used by switchTab */
@@ -100,4 +101,11 @@ function handleKeydown(e: KeyboardEvent): void {
   if (OPS.has(key))                        { _press(key);                        return; }
   if (key === 'Backspace' || key === 'Delete') { e.preventDefault(); _del();    return; }
   if (key === 'Escape'    || key === 'End')    { e.preventDefault(); _cls();    return; }
+
+  // Joystick up/down → switch focus between Calculator and Unit Product
+  if ((key === 'ArrowUp' || key === 'ArrowDown') && (state.mode === 'calc' || state.mode === 'box')) {
+    e.preventDefault();
+    setInputFocus(state.inputFocus === 'calc' ? 'unit' : 'calc');
+    return;
+  }
 }
