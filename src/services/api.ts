@@ -58,20 +58,23 @@ export async function apiGetProduct(id: string): Promise<Product | null> {
  * Used to hydrate the in-memory product cache on startup.
  */
 export async function apiGetAllProducts(): Promise<Product[]> {
-  let page = 1;
-  const all: Product[] = [];
+  // Primera página para saber el total de páginas
+  const first = await getJson<ProductPage>(
+    `${API_BASE}/api/products/all?page=1&limit=200`,
+    TIMEOUT.PRODUCT_ALL,
+  );
+  if (first.pages <= 1) return first.products;
 
-  for (;;) {
-    const data = await getJson<ProductPage>(
-      `${API_BASE}/api/products/all?page=${page}&limit=200`,
-      TIMEOUT.PRODUCT_ALL,
-    );
-    all.push(...data.products);
-    if (page >= data.pages) break;
-    page++;
-  }
-
-  return all;
+  // Páginas restantes en paralelo
+  const rest = await Promise.all(
+    Array.from({ length: first.pages - 1 }, (_, i) =>
+      getJson<ProductPage>(
+        `${API_BASE}/api/products/all?page=${i + 2}&limit=200`,
+        TIMEOUT.PRODUCT_ALL,
+      ),
+    ),
+  );
+  return [first, ...rest].flatMap(p => p.products);
 }
 
 /** Create a new product. */

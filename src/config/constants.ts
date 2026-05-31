@@ -13,6 +13,8 @@ export const API_BASE: string =
   import.meta.env['VITE_API_BASE'] ?? 'https://freshcalcu.soychristophe.workers.dev';
 /** Delete-product PIN. Stored in env, not in source code. */
 export const DELETE_PIN: string = import.meta.env['VITE_DELETE_PIN'] ?? '1986';
+/** Edit-product PIN. Stored in env, not in source code. */
+export const EDIT_PIN: string = import.meta.env['VITE_EDIT_PIN'] ?? '';
 
 /* ── Timeouts (ms) ──────────────────────────────────────────────────────── */
 export const TIMEOUT = {

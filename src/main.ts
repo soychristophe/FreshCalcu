@@ -94,6 +94,35 @@ const el: AppElements = {
 
 const triggerCopyToast = (): void => showToast(el.copyToast);
 
+/* ── SW asset pre-caching ────────────────────────────────────────────────── */
+// After the page has loaded, tell the Service Worker to cache all Vite-hashed
+// bundles that were fetched this session. This ensures the NEXT cold start on
+// Android serves JS entirely from cache (no blank-screen wait for network).
+
+function precacheViteAssets(): void {
+  if (!('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.ready.then(reg => {
+    if (!reg.active) return;
+
+    const scriptUrls = Array.from(
+      document.querySelectorAll<HTMLScriptElement>('script[src]'),
+    ).map(s => s.src);
+
+    const styleUrls = Array.from(
+      document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+    ).map(l => l.href);
+
+    const urls = [...scriptUrls, ...styleUrls].filter(
+      u => u.includes('/assets/'),
+    );
+
+    if (urls.length > 0) {
+      reg.active.postMessage({ type: 'PRECACHE_ASSETS', urls });
+    }
+  }).catch(() => { /* non-critical */ });
+}
+
 /* ── Bootstrap ───────────────────────────────────────────────────────────── */
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -125,12 +154,24 @@ window.addEventListener('DOMContentLoaded', () => {
   refresh();
   setInputFocus('calc');
 
-  // Non-blocking background tasks
+  // ── History: render immediately from localStorage, then refresh from D1 ──
+  // Showing stale-but-instant local data avoids the blank history panel on
+  // Android cold start while the Cloudflare Worker wakes up (can take 2-5s).
+  renderHistoryList();
+  updateHistoryFilterCount();
+
   void syncHistoryFromDB().then(() => {
     renderHistoryList();
     updateHistoryFilterCount();
   });
+
+  // Product cache: hydrates from localStorage synchronously inside loadProductCache,
+  // then refreshes from network in the background.
   void loadProductCache();
+
+  // After everything is painted, warm the SW cache with the Vite bundles
+  // so the next cold start is instant.
+  precacheViteAssets();
 });
 
 /* ── Expose only what HTML inline handlers still need ────────────────────────

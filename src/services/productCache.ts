@@ -69,9 +69,25 @@ function hydrateFromStorage(): boolean {
 /* ── Public API ──────────────────────────────────────────────────────────── */
 
 /**
+ * Android reports navigator.onLine = false for ~1 s after cold start even
+ * when real connectivity exists.  Wait up to maxWaitMs for the 'online' event.
+ */
+async function waitForOnline(maxWaitMs = 3000): Promise<boolean> {
+  if (navigator.onLine) return true;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { cleanup(); resolve(false); }, maxWaitMs);
+    const handler = () => { cleanup(); resolve(true); };
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener('online', handler);
+    };
+    window.addEventListener('online', handler, { once: true });
+  });
+}
+
+/**
  * Call once at app startup.
- * - Reads localStorage immediately (sync, offline-safe).
- * - Fires a background API refresh when online.
+ * - Reads localStorage immediately (sync, offline-safe).\n * - Fires a background API refresh when online.
  *
  * This function never throws; failures are swallowed gracefully.
  */
@@ -80,7 +96,8 @@ export async function loadProductCache(): Promise<void> {
 
   hydrateFromStorage();
 
-  if (!navigator.onLine) return;
+  const online = await waitForOnline();
+  if (!online) return;
 
   cache.loading = true;
   try {

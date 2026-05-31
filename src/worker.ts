@@ -127,24 +127,19 @@ async function handleGetAllProducts(req: Request, env: Env): Promise<Response> {
 
   if (q) {
     const like = `%${q}%`;
-    countRow = (await env.DB
-      .prepare(`SELECT COUNT(*) AS total FROM products WHERE name LIKE ?1 OR id LIKE ?1`)
-      .bind(like)
-      .first<{ total: number }>())!;
-    const res = await env.DB
-      .prepare(`SELECT id, name, sku, values_json FROM products WHERE name LIKE ?1 OR id LIKE ?1 ORDER BY name LIMIT ?2 OFFSET ?3`)
-      .bind(like, limit, offset)
-      .all<{ id: string; name: string; sku: string | null; values_json: string }>();
-    rows = res.results;
+    const [countRes, rowsRes] = await env.DB.batch([
+      env.DB.prepare(`SELECT COUNT(*) AS total FROM products WHERE name LIKE ?1 OR id LIKE ?1`).bind(like),
+      env.DB.prepare(`SELECT id, name, sku, values_json FROM products WHERE name LIKE ?1 OR id LIKE ?1 ORDER BY name LIMIT ?2 OFFSET ?3`).bind(like, limit, offset),
+    ]);
+    countRow = (countRes.results[0] as { total: number });
+    rows = rowsRes.results as { id: string; name: string; sku: string | null; values_json: string }[];
   } else {
-    countRow = (await env.DB
-      .prepare(`SELECT COUNT(*) AS total FROM products`)
-      .first<{ total: number }>())!;
-    const res = await env.DB
-      .prepare(`SELECT id, name, sku, values_json FROM products ORDER BY name LIMIT ?1 OFFSET ?2`)
-      .bind(limit, offset)
-      .all<{ id: string; name: string; sku: string | null; values_json: string }>();
-    rows = res.results;
+    const [countRes, rowsRes] = await env.DB.batch([
+      env.DB.prepare(`SELECT COUNT(*) AS total FROM products`),
+      env.DB.prepare(`SELECT id, name, sku, values_json FROM products ORDER BY name LIMIT ?1 OFFSET ?2`).bind(limit, offset),
+    ]);
+    countRow = (countRes.results[0] as { total: number });
+    rows = rowsRes.results as { id: string; name: string; sku: string | null; values_json: string }[];
   }
 
   const total = countRow?.total ?? 0;
@@ -220,14 +215,8 @@ async function handleUpdateProduct(id: string, req: Request, env: Env): Promise<
 }
 
 async function handleDeleteProduct(id: string, env: Env): Promise<Response> {
-  const row = await env.DB
-    .prepare(`SELECT id FROM products WHERE id = ?1`)
-    .bind(id)
-    .first<{ id: string }>();
-
-  if (!row) return err('Not found', 404);
-
-  await env.DB.prepare(`DELETE FROM products WHERE id = ?1`).bind(id).run();
+  const result = await env.DB.prepare(`DELETE FROM products WHERE id = ?1`).bind(id).run();
+  if (result.meta.changes === 0) return err('Not found', 404);
   return cors(null, 204);
 }
 
@@ -239,7 +228,9 @@ async function handleGetHistory(env: Env): Promise<Response> {
   const rows = await env.DB
     .prepare(`SELECT id AS rowId, barcode_id AS id, product_name AS name, scanned_at AS time
               FROM history
-              ORDER BY scanned_at DESC`)
+              WHERE DATE(scanned_at) = DATE('now')
+              ORDER BY scanned_at DESC
+              LIMIT 500`)
     .all<{ rowId: number; id: string; name: string; time: string }>();
 
   return json(rows.results);
