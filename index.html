@@ -43,13 +43,13 @@
 
 <!-- Tab navigation -->
 <nav class="top-nav">
-  <button id="tab-sped" onclick="switchTab('sped')">
+  <button id="tab-sped" data-action="switchTab" data-arg="sped">
     <span style="font-size:14px">⚡</span> SPEED <span style="opacity:0.6">(F10)</span>
   </button>
-  <button id="tab-calc" class="active" onclick="switchTab('calc')">
+  <button id="tab-calc" class="active" data-action="switchTab" data-arg="calc">
     <span style="font-size:14px">🔢</span> CALC <span style="opacity:0.6">(F11)</span>
   </button>
-  <button id="tab-msj" onclick="switchTab('msj')">
+  <button id="tab-msj" data-action="switchTab" data-arg="msj">
     <span style="font-size:14px">⚙️</span> MSJ <span style="opacity:0.6">(F12)</span>
   </button>
 </nav>
@@ -78,7 +78,7 @@
             title
             calc-hints-row → [hint-left] [main-display-row] [hint-right]
         -->
-        <div class="calc-focus-area" id="calc-focus-area" onclick="setInputFocus('calc')">
+        <div class="calc-focus-area" id="calc-focus-area" data-action="setInputFocusCalc">
           <span class="mini-label">CALCULATOR</span>
 
           <div class="calc-hints-row">
@@ -105,18 +105,18 @@
         </div><!-- /.calc-focus-area -->
 
         <div class="mini-box-display">
-          <div class="mini-item unit-row" id="unit-focus-area" onclick="setInputFocus('unit')">
+          <div class="mini-item unit-row" id="unit-focus-area" data-action="setInputFocusUnit">
             <span class="mini-label">UNIT PRODUCT</span>
             <span id="mini-total" class="mini-val">0</span>
           </div>
           <div class="mini-row">
             <div class="mini-item">
               <span class="mini-label">CRATES FULL</span>
-              <span id="mini-full" class="mini-val res" onclick="copyToClipboard(this.innerText)">0</span>
+              <span id="mini-full" class="mini-val res" data-action="copyToClipboard">0</span>
             </div>
             <div class="mini-item">
               <span class="mini-label">LAST UNITS</span>
-              <span id="mini-rest" class="mini-val rem" onclick="copyToClipboard(this.innerText)">0</span>
+              <span id="mini-rest" class="mini-val rem" data-action="copyToClipboard">0</span>
               <span id="mini-formula" style="color:#777; font-size:2.2rem"></span>
             </div>
           </div>
@@ -126,31 +126,31 @@
     </div><!-- /.screen-header -->
 
     <div class="keyboard" style="grid-template-rows: repeat(2, 1fr);">
-      <button class="btn-clean-total" onclick="clsTotal()"><span class="f-hint">TOTAL</span>Clean T</button>
-      <button class="btn-clear"       onclick="cls()"><span class="f-hint">ESC / END</span>Clean</button>
-      <button class="btn-del"         onclick="del()"><span class="f-hint">DEL</span>⌫</button>
-      <button class="btn-op"          onclick="press('+')" ><span class="f-hint">F1</span>+</button>
-      <button class="btn-op"          onclick="press('-')" ><span class="f-hint">F2</span>−</button>
-      <button class="btn-op"          onclick="press('*')" ><span class="f-hint">F3</span>×</button>
-      <button class="btn-op"          onclick="press('/')" ><span class="f-hint">F4</span>÷</button>
+      <button class="btn-clean-total" data-action="clsTotal"><span class="f-hint">TOTAL</span>Clean T</button>
+      <button class="btn-clear"       data-action="cls"><span class="f-hint">ESC / END</span>Clean</button>
+      <button class="btn-del"         data-action="del"><span class="f-hint">DEL</span>⌫</button>
+      <button class="btn-op"          data-action="press" data-arg="+" ><span class="f-hint">F1</span>+</button>
+      <button class="btn-op"          data-action="press" data-arg="-" ><span class="f-hint">F2</span>−</button>
+      <button class="btn-op"          data-action="press" data-arg="*" ><span class="f-hint">F3</span>×</button>
+      <button class="btn-op"          data-action="press" data-arg="/" ><span class="f-hint">F4</span>÷</button>
     </div>
   </section>
 
   <!-- ─── MSJ section ─────────────────────────────────────────────────── -->
   <section id="sec-msj" style="display:none;">
     <div class="msj-container">
-      <button class="btn-msj c-short"   onclick="showMsj('SHORT','#ff0000','#fff')">SHORT</button>
-      <button class="btn-msj c-ok"      onclick="showMsj('It\'s OK','#2ec4b6','#fff')">OK</button>
-      <button class="btn-msj c-extra"   onclick="showMsj('EXTRA','#4361ee','#fff')">EXTRA</button>
-      <button class="btn-msj c-wait"    onclick="showMsj('WAIT !!!','#f72585','#fff')">WAIT!!!</button>
-      <button class="btn-msj c-notscan" onclick="showMsj('NOT SCAN','#6a0dad','#fff')">NOT SCAN</button>
-      <button class="btn-msj c-wheels"  onclick="showMsj('WHEELS','#ffeb3b','#000')">WHEELS</button>
-      <button class="btn-msj c-crate"   onclick="showMsj('CRATE','#ff9f1c','#fff')">CRATE</button>
-      <button class="btn-msj c-docs"    onclick="showMsj('DOCUMENT ORDERS','#008080','#fff')">DOC ORDERS</button>
-      <button class="btn-msj c-urgent"  onclick="showMsj('URGENT','#c0ed38','#000')">URGENT</button>
-      <button class="btn-msj c-stop"    onclick="showMsj('STOP','#000000','#fff','10px solid red')">STOP</button>
-      <button class="btn-msj c-Toilet"  onclick="showMsj('Toilet','#000000','#fff','10px solid red')">TOILET</button>
-      <button class="btn-msj c-Toilet"  onclick="showMsj('soychristophe','#fff','#000000','5px solid lightyellow')">soychristophe</button>
+      <button class="btn-msj c-short"   data-action="showMsj" data-arg='["SHORT","#ff0000","#fff"]'>SHORT</button>
+      <button class="btn-msj c-ok"      data-action="showMsj" data-arg='["It&apos;s OK","#2ec4b6","#fff"]'>OK</button>
+      <button class="btn-msj c-extra"   data-action="showMsj" data-arg='["EXTRA","#4361ee","#fff"]'>EXTRA</button>
+      <button class="btn-msj c-wait"    data-action="showMsj" data-arg='["WAIT !!!","#f72585","#fff"]'>WAIT!!!</button>
+      <button class="btn-msj c-notscan" data-action="showMsj" data-arg='["NOT SCAN","#6a0dad","#fff"]'>NOT SCAN</button>
+      <button class="btn-msj c-wheels"  data-action="showMsj" data-arg='["WHEELS","#ffeb3b","#000"]'>WHEELS</button>
+      <button class="btn-msj c-crate"   data-action="showMsj" data-arg='["CRATE","#ff9f1c","#fff"]'>CRATE</button>
+      <button class="btn-msj c-docs"    data-action="showMsj" data-arg='["DOCUMENT ORDERS","#008080","#fff"]'>DOC ORDERS</button>
+      <button class="btn-msj c-urgent"  data-action="showMsj" data-arg='["URGENT","#c0ed38","#000"]'>URGENT</button>
+      <button class="btn-msj c-stop"    data-action="showMsj" data-arg='["STOP","#000000","#fff","10px solid red"]'>STOP</button>
+      <button class="btn-msj c-Toilet"  data-action="showMsj" data-arg='["Toilet","#000000","#fff","10px solid red"]'>TOILET</button>
+      <button class="btn-msj c-Toilet"  data-action="showMsj" data-arg='["soychristophe","#fff","#000000","5px solid lightyellow"]'>soychristophe_3.5</button>
     </div>
   </section>
 
@@ -204,10 +204,10 @@
 
       <div class="sped-actions">
         <div class="sped-actions-main">
-          <button onclick="resetSped()"          class="btn btn-gray">CLEAN</button>
-          <button onclick="nextSped()"           class="btn btn-primary">CONTINUE</button>
-          <button onclick="toggleHistoryPanel()" class="btn btn-history">📋 HISTORY DAY</button>
-          <button onclick="pasteClipboard()"     class="btn btn-primary btn-paste">PASTE</button>
+          <button data-action="resetSped"          class="btn btn-gray">CLEAN</button>
+          <button data-action="nextSped"           class="btn btn-primary">CONTINUE</button>
+          <button data-action="toggleHistoryPanel" class="btn btn-history">📋 HISTORY DAY</button>
+          <button data-action="pasteClipboard"     class="btn btn-primary btn-paste">PASTE</button>
         </div>
       </div>
 
@@ -236,8 +236,8 @@
         data-lpignore="true" data-form-type="other" data-1p-ignore="true"
       >
       <div class="sped-actions-row">
-        <button onclick="backSped()"    class="btn btn-gray">BACK</button>
-        <button onclick="processSped()" class="btn btn-success">CALCULATE</button>
+        <button data-action="backSped"    class="btn btn-gray">BACK</button>
+        <button data-action="processSped" class="btn btn-success">CALCULATE</button>
       </div>
       <div id="sped-product-info" class="sped-product-info"></div>
       <p id="sped-error-step2" class="error-message"></p>
@@ -281,14 +281,14 @@
       </div>
       <div style="flex:1"></div>
       <div class="bottom-btns">
-        <button class="btn-bottom" onclick="backToStep2FromCalcResult()">
+        <button class="btn-bottom" data-action="backToStep2FromCalcResult">
           <div class="btn-icon-circle icon-green">←</div>
           <div class="btn-content">
             <span class="btn-top-text" style="color:#10B981">BACK TO</span>
             <span class="btn-main-text">TOTAL AMOUNT</span>
           </div>
         </button>
-        <button class="btn-new-speed btn-bottom" onclick="resetSped()">🔄 NEW SPEED</button>
+        <button class="btn-new-speed btn-bottom" data-action="resetSped">🔄 NEW SPEED</button>
       </div>
     </div>
 
@@ -297,7 +297,7 @@
       <div class="section-block today-block">
         <div class="section-header">
           <div class="section-icon">📅</div>
-          <div onclick="sendTodayToCalcu()" class="section-title-clickable">
+          <div data-action="sendTodayToCalcu" class="section-title-clickable">
             <div class="section-title">TODAY</div>
             <div id="pull-today-product" class="section-sub">Product Name</div>
           </div>
@@ -323,7 +323,7 @@
           <div class="section-icon pull-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </div>
-          <div onclick="sendPullToCalcu()" class="section-title-clickable">
+          <div data-action="sendPullToCalcu" class="section-title-clickable">
             <div class="section-title">PULL</div>
             <div id="pull-pull-product" class="section-sub">Product Name</div>
           </div>
@@ -345,14 +345,14 @@
       </div>
 
       <div class="bottom-btns">
-        <button class="btn-bottom" onclick="backToStep2FromPullResult()">
+        <button class="btn-bottom" data-action="backToStep2FromPullResult">
           <div class="btn-icon-circle icon-green">←</div>
           <div class="btn-content">
             <span class="btn-top-text" style="color:#10B981">BACK TO</span>
             <span class="btn-main-text">TOTAL AMOUNT</span>
           </div>
         </button>
-        <button class="btn-new-speed btn-bottom" onclick="resetSped()">🔄 NEW SPEED</button>
+        <button class="btn-new-speed btn-bottom" data-action="resetSped">🔄 NEW SPEED</button>
       </div>
     </div>
   </section>
@@ -361,7 +361,7 @@
 
 <!-- MSJ fullscreen overlay -->
 <div id="msj-overlay">
-  <button id="btn-rotate" onclick="toggleRotation(event)">🔄</button>
+  <button id="btn-rotate" data-action="toggleRotation">🔄</button>
   <div id="msj-text"></div>
 </div>
 
@@ -370,13 +370,13 @@
 <div id="copy-toast">Copied to clipboard</div>
 
 <!-- Scan history panel -->
-<div id="history-backdrop"  class="history-backdrop"  onclick="toggleHistoryPanel()"></div>
+<div id="history-backdrop"  class="history-backdrop"  data-action="toggleHistoryPanel"></div>
 <div id="history-panel"     class="history-panel">
   <div class="history-panel-header">
     <span class="history-panel-title">📋 HISTORY</span>
     <div class="history-panel-actions">
-      <button onclick="clearHistory()"       class="btn-hist-clear">🗑 CLEAR</button>
-      <button onclick="toggleHistoryPanel()" class="btn-hist-close">✕</button>
+      <button data-action="clearHistory"       class="btn-hist-clear">🗑 CLEAR</button>
+      <button data-action="toggleHistoryPanel" class="btn-hist-close">✕</button>
     </div>
   </div>
   <div id="history-list" class="history-list">
@@ -385,12 +385,12 @@
 </div>
 
 <!-- Cloud audit log panel -->
-<div id="history-all-backdrop" class="history-all-backdrop" onclick="toggleHistoryAllPanel()"></div>
+<div id="history-all-backdrop" class="history-all-backdrop" data-action="toggleHistoryAllPanel"></div>
 <div id="history-all-panel"    class="history-all-panel">
   <div class="history-all-header">
     <span class="history-all-title">☁️ HISTORY ALL</span>
     <div class="history-all-actions" id="history-all-actions">
-      <button onclick="toggleHistoryAllPanel()" class="btn-hall-close" id="history-all-close-btn">✕ CLOSE</button>
+      <button data-action="toggleHistoryAllPanel" class="btn-hall-close" id="history-all-close-btn">✕ CLOSE</button>
     </div>
   </div>
   <div class="history-all-filter">
@@ -398,7 +398,7 @@
     <input type="date" id="history-all-from" autocomplete="off" data-lpignore="true" data-form-type="other" data-1p-ignore="true">
     <label for="history-all-to">TO</label>
     <input type="date" id="history-all-to"   autocomplete="off" data-lpignore="true" data-form-type="other" data-1p-ignore="true">
-    <button onclick="applyHistoryAllFilter()" class="btn-hall-apply">FILTER</button>
+    <button data-action="applyHistoryAllFilter" class="btn-hall-apply">FILTER</button>
   </div>
   <div id="history-all-count" class="history-all-count">—</div>
   <div id="history-all-list"  class="history-all-list">

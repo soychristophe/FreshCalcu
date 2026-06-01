@@ -65,8 +65,10 @@ export async function apiGetAllProducts(): Promise<Product[]> {
   );
   if (first.pages <= 1) return first.products;
 
-  // Páginas restantes en paralelo
-  const rest = await Promise.all(
+  // Páginas restantes en paralelo.
+  // Promise.allSettled — si una página falla (timeout, error de red) las demás
+  // se procesan igualmente y el caché se hidrata con lo que llegó.
+  const settled = await Promise.allSettled(
     Array.from({ length: first.pages - 1 }, (_, i) =>
       getJson<ProductPage>(
         `${API_BASE}/api/products/all?page=${i + 2}&limit=200`,
@@ -74,6 +76,11 @@ export async function apiGetAllProducts(): Promise<Product[]> {
       ),
     ),
   );
+
+  const rest = settled
+    .filter((r): r is PromiseFulfilledResult<ProductPage> => r.status === 'fulfilled')
+    .map(r => r.value);
+
   return [first, ...rest].flatMap(p => p.products);
 }
 

@@ -174,46 +174,74 @@ window.addEventListener('DOMContentLoaded', () => {
   precacheViteAssets();
 });
 
-/* ── Expose only what HTML inline handlers still need ────────────────────────
+/* ── Wire all HTML inline handlers via data-action delegation ────────────────
  *
- * Ideally index.html uses data-attributes + addEventListener exclusively.
- * Until the HTML is fully migrated, these minimal globals bridge the gap.
- * Each one is a direct re-export — no logic lives here.
+ * El HTML usa data-action="fnName" (y data-arg="value" cuando corresponde)
+ * en lugar de onclick="fnName()". Un único listener en <body> despacha a la
+ * función correcta sin exponer nada en window.
  *
- * NOTE: Products-panel no longer needs refreshProductCache on window because
- * it imports it directly as an ES module.
+ * Formato en el HTML:
+ *   <button data-action="press" data-arg="+">+</button>
+ *   <button data-action="cls">Clean</button>
+ *   <span   data-action="copyToClipboard" data-arg-inner>0</span>   ← usa innerText como arg
  */
-Object.assign(window, {
+
+type ActionArg = string | undefined;
+
+const ACTION_MAP: Record<string, (arg: ActionArg, target: Element) => void> = {
   // Calculator
-  press, del, cls, clsTotal, setInputFocus,
+  press:          (arg) => { if (arg) press(arg); },
+  del:            ()    => del(),
+  cls:            ()    => cls(),
+  clsTotal:       ()    => clsTotal(),
+  setInputFocusCalc: () => setInputFocus('calc'),
+  setInputFocusUnit: () => setInputFocus('unit'),
+  copyToClipboard:(_, t) => copyToClipboard((t as HTMLElement).innerText, triggerCopyToast),
 
   // Navigation
-  switchTab,
-
-  // Copy
-  copyToClipboard: (text: unknown) => copyToClipboard(text, triggerCopyToast),
+  switchTab:      (arg) => { if (arg) switchTab(arg as Parameters<typeof switchTab>[0]); },
 
   // MSJ
-  showMsj, toggleRotation,
+  showMsj:        (arg) => {
+    if (!arg) return;
+    const parts = JSON.parse(arg) as [string, string, string, string?];
+    const [text, bg, color, border] = parts;
+    showMsj(text, bg, color, border);
+  },
+  toggleRotation: (_, t) => toggleRotation({ target: t } as unknown as MouseEvent),
 
   // SPED
-  cancelSped,
-  nextSped:    () => void nextSped(),
-  backSped,
-  processSped,
-  pasteClipboard: () => void pasteClipboard(),
-  resetSped,
-  setSpedView,
-  backToStep2FromCalcResult,
-  backToStep2FromPullResult,
-  sendTodayToCalcu,
-  sendPullToCalcu,
+  cancelSped:                  ()  => cancelSped(),
+  nextSped:                    ()  => void nextSped(),
+  backSped:                    ()  => backSped(),
+  processSped:                 ()  => processSped(),
+  pasteClipboard:              ()  => void pasteClipboard(),
+  resetSped:                   ()  => resetSped(),
+  setSpedView:                 (arg) => { if (arg) setSpedView(arg as Parameters<typeof setSpedView>[0]); },
+  backToStep2FromCalcResult:   ()  => backToStep2FromCalcResult(),
+  backToStep2FromPullResult:   ()  => backToStep2FromPullResult(),
+  sendTodayToCalcu:            ()  => sendTodayToCalcu(),
+  sendPullToCalcu:             ()  => sendPullToCalcu(),
 
   // History
-  toggleHistoryPanel,
-  clearHistory,
+  toggleHistoryPanel:          ()  => toggleHistoryPanel(),
+  clearHistory:                ()  => clearHistory(),
+  toggleHistoryAllPanel:       ()  => void toggleHistoryAllPanel(),
+  applyHistoryAllFilter:       ()  => void applyHistoryAllFilter(),
+};
 
-  // History All
-  toggleHistoryAllPanel: () => void toggleHistoryAllPanel(),
-  applyHistoryAllFilter: () => void applyHistoryAllFilter(),
+document.body.addEventListener('click', (e: MouseEvent) => {
+  const target = (e.target as Element).closest<HTMLElement>('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset['action'];
+  if (!action) return;
+
+  const handler = ACTION_MAP[action];
+  if (!handler) {
+    console.warn(`[freshways] Unknown data-action: "${action}"`);
+    return;
+  }
+
+  handler(target.dataset['arg'], target);
 });

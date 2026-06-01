@@ -348,10 +348,10 @@ async function handleClearHistoryAll(env: Env): Promise<Response> {
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 function parseProduct(row: {
-  id: string;
-  name: string;
-  sku: string | null;
-  values: string;
+  id:          string;
+  name:        string;
+  sku:         string | null;
+  values_json: string;          // DB column name — was wrongly declared as "values"
 }) {
   let values: string[] = [];
   try { values = JSON.parse(row.values_json) as string[]; } catch { /* keep [] */ }
