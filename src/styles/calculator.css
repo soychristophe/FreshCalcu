@@ -328,6 +328,11 @@
   line-height: 1.2;
 }
 
+/* UNIT PRODUCT value — 15 % larger than the other mini-vals */
+#mini-total.mini-val {
+  font-size: clamp(1.84rem, 7.475vh, 4.02rem);
+}
+
 .mini-val {
   font-size: clamp(1.6rem, 6.5vh, 3.5rem);
   font-weight: 800;
