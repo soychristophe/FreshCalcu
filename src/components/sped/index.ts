@@ -619,9 +619,12 @@ async function _openNativeScanner(): Promise<void> {
     await startScanner(viewport, rawValue => {
       stopScanner(viewport);
       _closeNativeScanner();
+      // ── Insertar en el cajón de búsqueda y hacer foco ─────────────────
       _el.spedBarcode.value = rawValue;
+      _el.spedBarcode.focus();
       copyToClipboard(rawValue, _copyToast);
-      void nextSped();
+      // Pequeño delay para que el usuario vea el valor antes de avanzar
+      setTimeout(() => void nextSped(), 120);
     });
   } catch (err) {
     console.error('Scanner error:', err);
@@ -660,9 +663,11 @@ function _initIOSScanner(btn: HTMLButtonElement): void {
     try {
       const rawValue = await _decodeImageWithZXing(file);
       if (rawValue) {
+        // ── Insertar en el cajón de búsqueda y hacer foco ───────────────
         _el.spedBarcode.value = rawValue;
+        _el.spedBarcode.focus();
         copyToClipboard(rawValue, _copyToast);
-        void nextSped();
+        setTimeout(() => void nextSped(), 120);
       } else {
         alert('No barcode detected. Try again with better lighting or a closer shot.');
       }

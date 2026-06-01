@@ -18,7 +18,21 @@ export function initPwa(el: AppElements): void {
 
 function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
+
   navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+
+  // When a brand-new SW activates (first install or version upgrade) it posts
+  // SW_ACTIVATED. We reload once — but ONLY if the page is not already
+  // controlled (i.e. it's a fresh install landing on a half-cached shell).
+  // The flag prevents an infinite reload loop.
+  const RELOAD_FLAG = 'fw_sw_reloaded';
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type !== 'SW_ACTIVATED') return;
+    if (navigator.serviceWorker.controller) return; // already controlled — skip
+    if (sessionStorage.getItem(RELOAD_FLAG)) return; // already reloaded once
+    sessionStorage.setItem(RELOAD_FLAG, '1');
+    window.location.reload();
+  });
 }
 
 /* ── Install banner ──────────────────────────────────────────────────────── */

@@ -14,6 +14,7 @@
 import { STORAGE_KEY } from '@/config/constants.ts';
 import {
   apiAddHistory,
+  apiAddHistoryAll,
   apiGetHistory,
   apiClearHistory,
 } from '@/services/api.ts';
@@ -129,13 +130,17 @@ export function addToHistory(product: Product): void {
   saveToStorage(_history);
 
   // Fire-and-forget remote write (non-blocking).
-  // NOTE: apiAddHistoryAll is intentionally NOT called here.
-  // The audit log entry (with real qty / pullQty values) is written by
-  // renderCalcResult() / renderPullResult() in sped/index.ts, once the
-  // calculation has been completed. Calling it here with (null, null) would
-  // produce a duplicate row in the D1 audit log on every scan.
+  // apiAddHistory → scan_history (History Day, current-day panel).
+  // apiAddHistoryAll → scan_history_all (History All cloud log).
+  //   • Called here with qty=null so EVERY scan appears in History All,
+  //     even when the user never proceeds to enter a quantity.
+  //   • renderCalcResult / renderPullResult will call apiAddHistoryAll again
+  //     with the real qty values once the calculation is done. The Worker
+  //     should upsert by (barcode_id, date) or insert a new row — either
+  //     way the final row with qty is always present.
   if (navigator.onLine) {
     apiAddHistory(idStr, product.name ?? '').catch(() => undefined);
+    apiAddHistoryAll(idStr, product.name ?? '', null, null).catch(() => undefined);
   }
 }
 

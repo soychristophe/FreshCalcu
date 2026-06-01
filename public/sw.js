@@ -63,7 +63,19 @@ self.addEventListener('activate', (e) => {
             .map(k => caches.delete(k)),
         )
       )
-      .then(() => self.clients.claim()) // ✅ inside waitUntil — controls clients after cleanup
+      .then(() => self.clients.claim())
+      .then(() => {
+        // Notify all controlled clients that the SW is fresh and ready.
+        // The app listens for SW_ACTIVATED and reloads once so the new
+        // shell is served from cache instead of showing the splash icon
+        // on the very first install.
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      })
+      .then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'SW_ACTIVATED' });
+        });
+      })
   );
 });
 
