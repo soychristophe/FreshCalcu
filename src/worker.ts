@@ -73,6 +73,10 @@ export default {
       if (method === 'POST')   return handleAddHistoryAll(request, env);
       if (method === 'DELETE') return handleClearHistoryAll(env);
     }
+    const historyAllRowMatch = pathname.match(/^\/api\/history-all\/(\d+)$/);
+    if (historyAllRowMatch && method === 'DELETE') {
+      return handleDeleteHistoryAllRow(Number(historyAllRowMatch[1]), env);
+    }
 
     return err('Not found', 404);
   },
@@ -226,24 +230,31 @@ async function handleDeleteProduct(id: string, env: Env): Promise<Response> {
 
 async function handleGetHistory(env: Env): Promise<Response> {
   const rows = await env.DB
-    .prepare(`SELECT id AS rowId, barcode_id AS id, product_name AS name, scanned_at AS time
+    .prepare(`SELECT id AS rowId, barcode_id AS id, product_name AS name,
+                     qty, pull_qty, scanned_at AS time
               FROM history
               WHERE DATE(scanned_at) = DATE('now')
               ORDER BY scanned_at DESC
               LIMIT 500`)
-    .all<{ rowId: number; id: string; name: string; time: string }>();
+    .all<{ rowId: number; id: string; name: string; qty: number | null; pull_qty: number | null; time: string }>();
 
   return json(rows.results);
 }
 
 async function handleAddHistory(req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{ barcode_id: string; product_name: string }>();
+  const body = await req.json<{ barcode_id: string; product_name: string; qty?: number | null; pull_qty?: number | null; client_time?: string }>();
   if (!body.barcode_id) return err('barcode_id is required');
 
-  await env.DB
-    .prepare(`INSERT INTO history (barcode_id, product_name) VALUES (?1, ?2)`)
-    .bind(body.barcode_id, body.product_name ?? '')
-    .run();
+  const histInsertSQL = body.client_time
+    ? `INSERT INTO history (barcode_id, product_name, qty, pull_qty, scanned_at) VALUES (?1, ?2, ?3, ?4, ?5)`
+    : `INSERT INTO history (barcode_id, product_name, qty, pull_qty) VALUES (?1, ?2, ?3, ?4)`;
+
+  const histStmt = env.DB.prepare(histInsertSQL);
+  const histBound = body.client_time
+    ? histStmt.bind(body.barcode_id, body.product_name ?? '', body.qty ?? null, body.pull_qty ?? null, body.client_time)
+    : histStmt.bind(body.barcode_id, body.product_name ?? '', body.qty ?? null, body.pull_qty ?? null);
+
+  await histBound.run();
 
   return cors(null, 201);
 }
@@ -293,7 +304,7 @@ async function handleGetHistoryAll(req: Request, env: Env): Promise<Response> {
 
   const rows = await env.DB
     .prepare(
-      `SELECT barcode_id, product_name, qty, pull_qty, scanned_at
+      `SELECT id, barcode_id, product_name, qty, pull_qty, scanned_at
        FROM history_all
        ${where}
        ORDER BY scanned_at DESC
@@ -301,6 +312,7 @@ async function handleGetHistoryAll(req: Request, env: Env): Promise<Response> {
     )
     .bind(...binds, limit, offset)
     .all<{
+      id:           number;
       barcode_id:   string;
       product_name: string;
       qty:          number | null;
@@ -320,24 +332,28 @@ async function handleAddHistoryAll(req: Request, env: Env): Promise<Response> {
     product_name: string;
     qty:          number | null;
     pull_qty:     number | null;
+    client_time?: string;
   }>();
 
   if (!body.barcode_id) return err('barcode_id is required');
 
-  await env.DB
-    .prepare(
-      `INSERT INTO history_all (barcode_id, product_name, qty, pull_qty)
-       VALUES (?1, ?2, ?3, ?4)`,
-    )
-    .bind(
-      body.barcode_id,
-      body.product_name  ?? '',
-      body.qty           ?? null,
-      body.pull_qty      ?? null,
-    )
-    .run();
+  const insertSQL = body.client_time
+    ? `INSERT INTO history_all (barcode_id, product_name, qty, pull_qty, scanned_at) VALUES (?1, ?2, ?3, ?4, ?5)`
+    : `INSERT INTO history_all (barcode_id, product_name, qty, pull_qty) VALUES (?1, ?2, ?3, ?4)`;
+
+  const stmt = env.DB.prepare(insertSQL);
+  const bound = body.client_time
+    ? stmt.bind(body.barcode_id, body.product_name ?? '', body.qty ?? null, body.pull_qty ?? null, body.client_time)
+    : stmt.bind(body.barcode_id, body.product_name ?? '', body.qty ?? null, body.pull_qty ?? null);
+
+  await bound.run();
 
   return cors(null, 201);
+}
+
+async function handleDeleteHistoryAllRow(rowId: number, env: Env): Promise<Response> {
+  await env.DB.prepare(`DELETE FROM history_all WHERE id = ?1`).bind(rowId).run();
+  return cors(null, 204);
 }
 
 async function handleClearHistoryAll(env: Env): Promise<Response> {

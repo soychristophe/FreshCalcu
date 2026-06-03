@@ -247,11 +247,11 @@
     <div id="sped-calc-result" class="section-block today-block" style="display:none; flex-direction:column; height:100%;">
       <div class="section-header">
         <div class="section-icon">📊</div>
-        <div>
+        <div data-action="sendTodayToCalcu" class="section-title-clickable">
           <div class="section-title">RESULT</div>
           <div id="calc-product-name" class="section-sub">Product Name</div>
         </div>
-        <span id="calc-header-barcode" class="section-header-barcode"></span>
+        <span id="calc-header-barcode" class="section-header-barcode barcode-copyable" title="Tap to copy"></span>
       </div>
       <div class="card-grid" id="calc-row1">
         <div class="card">
@@ -301,7 +301,7 @@
             <div class="section-title">TODAY</div>
             <div id="pull-today-product" class="section-sub">Product Name</div>
           </div>
-          <span id="pull-today-header-barcode" class="section-header-barcode"></span>
+          <span id="pull-today-header-barcode" class="section-header-barcode barcode-copyable" title="Tap to copy"></span>
         </div>
         <div class="card-grid" id="today-row1">
           <div class="card"><span class="card-label">UNIT PRODUCT</span><span id="pull-today-units" class="card-value">0</span></div>
@@ -327,7 +327,7 @@
             <div class="section-title">PULL</div>
             <div id="pull-pull-product" class="section-sub">Product Name</div>
           </div>
-          <span id="pull-pull-header-barcode" class="section-header-barcode"></span>
+          <span id="pull-pull-header-barcode" class="section-header-barcode barcode-copyable" title="Tap to copy"></span>
         </div>
         <div class="card-grid" id="pull-row1">
           <div class="card"><span class="card-label">PULL UNIT</span><span id="pull-pull-units" class="card-value">0</span></div>

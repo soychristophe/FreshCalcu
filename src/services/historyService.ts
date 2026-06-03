@@ -173,6 +173,11 @@ export function updateHistoryWithQty(
   ];
 
   saveToStorage(_history);
+
+  // Sync qty values to D1 history table (fire-and-forget)
+  if (navigator.onLine) {
+    apiAddHistory(idStr, updated.name, qty, pullQty).catch(() => undefined);
+  }
 }
 
 /**
@@ -248,15 +253,17 @@ export async function syncHistoryFromDB(): Promise<readonly HistoryEntry[]> {
         }
 
         const local = localSnapshot.get(r.id);
+        // Prefer local qty (may have been set this session after sync);
+        // fall back to the value stored in D1 (r.qty / r.pull_qty).
+        const mergedQty     = local?.qty     !== undefined ? local.qty     : (r.qty     ?? undefined);
+        const mergedPullQty = local?.pullQty !== undefined ? local.pullQty : (r.pull_qty ?? undefined);
         const entry: HistoryEntry = {
           rowId: r.rowId,
           id:    r.id,
           name:  r.name,
           time:  t,
-          // Merge qty / pullQty from the local snapshot when available so that
-          // values calculated before this sync are not wiped on page reload.
-          ...(local?.qty     !== undefined ? { qty:     local.qty }     : {}),
-          ...(local?.pullQty !== undefined ? { pullQty: local.pullQty } : {}),
+          ...(mergedQty     !== undefined ? { qty:     mergedQty }     : {}),
+          ...(mergedPullQty !== undefined ? { pullQty: mergedPullQty } : {}),
         };
         return entry;
       });

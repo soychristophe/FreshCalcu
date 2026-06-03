@@ -35,20 +35,25 @@ export interface HistoryEntry {
 
 /** Shape returned by GET /api/history */
 export interface RemoteHistoryEntry {
-  readonly rowId: number;
-  readonly id:    string;
-  readonly name:  string;
-  readonly time:  string;
+  readonly rowId:    number;
+  readonly id:       string;
+  readonly name:     string;
+  readonly time:     string;
+  readonly qty:      number | null;
+  readonly pull_qty: number | null;
 }
 
-/** A single entry in the full audit log (history-all). */
+/** A single entry in history-all with its row id (for individual delete). */
 export interface HistoryAllEntry {
-  readonly barcode_id:  string;
+  readonly id:           number;   // row id — used for individual delete
+  readonly barcode_id:   string;
   readonly product_name: string;
-  readonly scanned_at:  string;   // ISO timestamp
-  readonly qty:         number | null;
-  readonly pull_qty:    number | null;
+  readonly scanned_at:   string;
+  readonly qty:          number | null;
+  readonly pull_qty:     number | null;
 }
+
+/** HistoryAllEntry is defined above alongside RemoteHistoryEntry. */
 
 /** Shape returned by GET /api/history-all */
 export interface HistoryAllPage {

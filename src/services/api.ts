@@ -129,11 +129,22 @@ export async function apiDeleteProduct(id: string): Promise<void> {
 
 /* ── History ─────────────────────────────────────────────────────────────── */
 
-export async function apiAddHistory(barcodeId: string, productName: string): Promise<void> {
+export async function apiAddHistory(
+  barcodeId:   string,
+  productName: string,
+  qty:         number | null = null,
+  pullQty:     number | null = null,
+): Promise<void> {
   await fetch(`${API_BASE}/api/history`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ barcode_id: barcodeId, product_name: productName }),
+    body:    JSON.stringify({
+      barcode_id:   barcodeId,
+      product_name: productName,
+      qty:          qty ?? null,
+      pull_qty:     pullQty ?? null,
+      client_time:  new Date().toISOString(),
+    }),
     signal:  signal(TIMEOUT.HISTORY),
   });
 }
@@ -170,13 +181,26 @@ export async function apiAddHistoryAll(
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({
-      barcode_id:   barcodeId,
-      product_name: productName,
-      qty:          qty ?? null,
-      pull_qty:     pullQty ?? null,
+      barcode_id:    barcodeId,
+      product_name:  productName,
+      qty:           qty ?? null,
+      pull_qty:      pullQty ?? null,
+      client_time:   new Date().toISOString(), // preserve device local timezone
     }),
     signal: signal(TIMEOUT.HISTORY),
   });
+}
+
+/** Delete a single history-all entry by its row id. */
+export async function apiDeleteHistoryAllEntry(rowId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/history-all/${rowId}`, {
+    method: 'DELETE',
+    signal: signal(TIMEOUT.HISTORY),
+  });
+  if (!res.ok && res.status !== 204) {
+    const data = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(data.error ?? `HTTP ${res.status}`);
+  }
 }
 
 export async function apiGetHistoryAll({

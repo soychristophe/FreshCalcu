@@ -369,6 +369,9 @@ async function _doOpenForm(id: string | null): Promise<void> {
     if (fieldId) (fieldId as HTMLElement).style.opacity = '1';
   }
 
+  // Ensure _suppressAutofill() doesn't block typing in dynamically-injected inputs
+  [inputId, inputName, inputSku, inputVals].forEach(el => el?.removeAttribute('readonly'));
+
   overlay?.classList.add('open');
   setTimeout(() => (inputId.disabled ? inputName.focus() : inputId.focus()), 250);
 }

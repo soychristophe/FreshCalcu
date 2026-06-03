@@ -731,3 +731,14 @@
 .pp-cache-freshness[data-freshness="fresh"] { color: #2ec4b6; }
 .pp-cache-freshness[data-freshness="aging"] { color: #f4a261; }
 .pp-cache-freshness[data-freshness="stale"] { color: #ef233c; }
+
+/* ── Barcode copyable (result views) ──────────────────────────────────────── */
+.barcode-copyable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.barcode-copyable:active {
+  background: rgba(200, 245, 66, 0.3);
+  color: #333;
+}

@@ -393,6 +393,7 @@ function renderCalcResult(
   fitText(findEl('calc-formula'), 30, 12);
   applySubCrateMode('calc', calc.full === 0);
   setSpedView('calc-result');
+  requestAnimationFrame(wireCopyableBarcodes);
 
   if (navigator.onLine) {
     apiAddHistoryAll(String(product.id), product.name ?? '', qty, null).catch(() => undefined);
@@ -443,6 +444,7 @@ function renderPullResult(
   applySubCrateMode('today', calc.full === 0);
   applySubCrateMode('pull',  pullCalc.full === 0);
   setSpedView('pull-result');
+  requestAnimationFrame(wireCopyableBarcodes);
 
   if (navigator.onLine) {
     apiAddHistoryAll(String(product.id), product.name ?? '', qty, pullQtyVal).catch(() => undefined);
@@ -720,4 +722,18 @@ async function _decodeImageWithZXing(file: File): Promise<string | null> {
 function setText(id: string, value: string): void {
   const el = findEl(id);
   if (el) el.textContent = value;
+}
+
+/** Wire all .barcode-copyable spans so tapping copies the text content. */
+function wireCopyableBarcodes(): void {
+  document.querySelectorAll<HTMLElement>('.barcode-copyable').forEach(el => {
+    if (el.dataset['copyWired']) return; // avoid double-wiring
+    el.dataset['copyWired'] = '1';
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {
+      const text = el.textContent?.trim() ?? '';
+      if (!text) return;
+      copyToClipboard(text, _copyToast);
+    });
+  });
 }

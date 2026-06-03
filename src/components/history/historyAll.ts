@@ -3,7 +3,7 @@
 // Adds a CSV export button when entries are loaded.
 // Default date filter: current day (avoids loading the full log on open).
 
-import { apiGetHistoryAll, apiClearHistoryAll } from '@/services/api.ts';
+import { apiGetHistoryAll, apiClearHistoryAll, apiDeleteHistoryAllEntry } from '@/services/api.ts';
 import { formatHistoryAllDate }  from '@/utils/format.ts';
 import { copyToClipboard }       from '@/utils/clipboard.ts';
 import { haptic, findEl }        from '@/utils/dom.ts';
@@ -64,6 +64,8 @@ export async function applyHistoryAllFilter(): Promise<void> {
 }
 
 export async function clearHistoryAll(): Promise<void> {
+  const confirmed = window.confirm('Clear ALL history? This cannot be undone.');
+  if (!confirmed) return;
   _entries = [];
   renderHistoryAllList();
   renderExportButton();
@@ -154,11 +156,40 @@ function renderHistoryAllList(): void {
       infoCol.append(qtyEl);
     }
 
-    row.append(dateEl, infoCol);
+    // ── Individual delete button ─────────────────────────────────────────
+    const delBtn = document.createElement('button');
+    delBtn.className   = 'hall-del-btn';
+    delBtn.textContent = '🗑';
+    delBtn.title       = 'Delete this entry';
+    delBtn.addEventListener('click', () => void deleteHistoryAllEntry(entry, row));
+
+    row.append(dateEl, infoCol, delBtn);
     frag.appendChild(row);
   });
 
   listEl.replaceChildren(frag);
+}
+
+async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement): Promise<void> {
+  const label = entry.product_name || entry.barcode_id;
+  const confirmed = window.confirm(`Delete entry for "${label}"?`);
+  if (!confirmed) return;
+
+  rowEl.style.opacity = '0.4';
+  rowEl.style.pointerEvents = 'none';
+
+  try {
+    await apiDeleteHistoryAllEntry(entry.id);
+    _entries = _entries.filter(e => e.id !== entry.id);
+    rowEl.remove();
+    const countEl = findEl('history-all-count');
+    if (countEl) countEl.textContent = `${_entries.length} entries`;
+    renderExportButton();
+  } catch {
+    rowEl.style.opacity = '';
+    rowEl.style.pointerEvents = '';
+    alert('Error deleting entry. Check connection.');
+  }
 }
 
 /* ── CSV Export ──────────────────────────────────────────────────────────── */
