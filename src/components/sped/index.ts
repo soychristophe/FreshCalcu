@@ -284,6 +284,10 @@ async function _handlePrefill(productId: string): Promise<void> {
   if (product) {
     state.selectedProduct = product;
     _el.spedBarcode.value = String(product.id);
+    addToHistory(product);
+    renderHistoryList();
+    updateHistoryFilterCount();
+    updateSpedProgressCounter();
     renderSpedProductInfo();
     setSpedView('step2');
     (_el.spedQty as HTMLInputElement).value = '';

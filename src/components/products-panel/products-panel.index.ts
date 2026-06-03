@@ -605,6 +605,8 @@ function injectHTML(): void {
       </div>
     </div>
 
+    <div id="pp-toast"></div>
+
     <div id="pp-editpwd-overlay">
       <div id="pp-editpwd-modal">
         <p class="pp-delete-modal-title">Edit product</p>
