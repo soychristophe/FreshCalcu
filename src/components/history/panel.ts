@@ -4,10 +4,11 @@
 import {
   getHistory,
   clearHistory as svcClearHistory,
+  removeFromHistory,
 } from '@/services/historyService.ts';
 import { copyToClipboard }   from '@/utils/clipboard.ts';
 import { haptic, findEl }    from '@/utils/dom.ts';
-import type { AppElements }  from '@/types/index.ts';
+import type { AppElements, HistoryEntry }  from '@/types/index.ts';
 
 let _panelOpen = false;
 
@@ -29,17 +30,17 @@ export function toggleHistoryPanel(): void {
   } else {
     panel?.classList.remove('open');
     backdrop?.classList.remove('open');
-    // Notify SPED that the modal closed so it can return focus to #sped-barcode
     document.dispatchEvent(new CustomEvent('modal:closed'));
   }
   haptic();
 }
 
 export function clearHistory(): void {
+  const confirmed = window.confirm('Clear ALL history day? This cannot be undone.');
+  if (!confirmed) return;
   svcClearHistory();
   renderHistoryList();
   updateHistoryFilterCount();
-  // Also reset the progress total so the counter starts fresh
   try { localStorage.removeItem('fw_sped_total'); } catch { /* ignore */ }
   updateSpedProgressCounter();
   haptic();
@@ -65,10 +66,14 @@ export function renderHistoryList(): void {
     // Click on the whole row → pre-fill SPED
     row.addEventListener('click', e => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('history-barcode')) return;
+      // Ignore clicks on barcode, delete button and their children
+      if (
+        target.classList.contains('history-barcode') ||
+        target.classList.contains('hall-del-btn') ||
+        target.closest('.hall-del-btn')
+      ) return;
 
       if (_panelOpen) toggleHistoryPanel();
-
       document.dispatchEvent(
         new CustomEvent<{ productId: string }>('sped:prefill', {
           detail: { productId: entry.id },
@@ -99,7 +104,7 @@ export function renderHistoryList(): void {
     infoCol.className = 'history-info-col';
     infoCol.append(barcodeEl, nameEl);
 
-    // ── CC Qty / Pull Qty (mirrors historyAll display) ────────────────────
+    // ── CC Qty / Pull Qty ─────────────────────────────────────────────────
     if (entry.qty !== null && entry.qty !== undefined) {
       const qtyEl = document.createElement('span');
       qtyEl.className = 'history-all-qty';
@@ -111,28 +116,56 @@ export function renderHistoryList(): void {
       infoCol.append(qtyEl);
     }
 
-    // Small arrow hint
-    const arrowEl = document.createElement('span');
-    arrowEl.className   = 'history-prefill-hint';
-    arrowEl.textContent = '→';
-    arrowEl.title       = 'Load in SPED';
+    // ── Delete button ─────────────────────────────────────────────────────
+    const delBtn = document.createElement('button');
+    delBtn.className   = 'hall-del-btn';
+    delBtn.textContent = '🗑';
+    delBtn.title       = 'Delete this entry';
+    delBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      _deleteEntry(entry, row);
+    });
 
-    row.append(timeEl, infoCol, arrowEl);
+    row.append(timeEl, infoCol, delBtn);
     frag.appendChild(row);
   });
 
   listEl.replaceChildren(frag);
 }
 
+function _deleteEntry(entry: HistoryEntry, rowEl: HTMLElement): void {
+  const label = entry.name || entry.id;
+  const confirmed = window.confirm(`Delete entry for "${label}"?`);
+  if (!confirmed) return;
+
+  rowEl.style.opacity        = '0.4';
+  rowEl.style.pointerEvents  = 'none';
+
+  removeFromHistory(entry.id);
+
+  // Animate out then remove from DOM
+  rowEl.style.transition = 'opacity 0.2s';
+  setTimeout(() => {
+    rowEl.remove();
+    // If list is now empty, show placeholder
+    const listEl = findEl('history-list');
+    if (listEl && listEl.children.length === 0) {
+      listEl.innerHTML = '<p class="history-empty">No scanned barcodes yet.</p>';
+    }
+    updateHistoryFilterCount();
+    updateSpedProgressCounter();
+  }, 200);
+}
+
 export function updateHistoryFilterCount(): void {
   const countEl = findEl('history-filter-count');
   if (!countEl) return;
-  const chk = findEl<HTMLInputElement>('sped-filter-history');
+  const chk     = findEl<HTMLInputElement>('sped-filter-history');
   const history = getHistory();
 
   if (chk?.checked && history.length > 0) {
-    countEl.textContent    = `(${history.length} skipped)`;
-    countEl.style.display  = 'inline';
+    countEl.textContent   = `(${history.length} skipped)`;
+    countEl.style.display = 'inline';
   } else {
     countEl.style.display = 'none';
   }
@@ -148,25 +181,20 @@ export function getHistoryIds(): string[] {
 
 /* ── Progress counter ────────────────────────────────────────────────────── */
 
-/**
- * Updates the #sped-progress-counter element.
- * Shows "X done" when "Skip searched" is active and at least one product has been scanned.
- */
 export function updateSpedProgressCounter(): void {
   const el  = findEl('sped-progress-counter');
   const chk = findEl<HTMLInputElement>('sped-filter-history');
   if (!el) return;
-  
+
   const filterOn = chk?.checked ?? false;
   const done     = getHistory().length;
-  
+
   if (!filterOn || done === 0) {
     el.textContent   = '';
     el.style.display = 'none';
     return;
   }
-  
-  // ✅ Eliminada la palabra "done". Si quieres mostrar solo el número, usa: `${done}`
-  el.textContent   = ''; 
+
+  el.textContent   = '';
   el.style.display = 'inline';
 }

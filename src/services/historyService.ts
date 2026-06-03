@@ -17,6 +17,7 @@ import {
   apiAddHistoryAll,
   apiGetHistory,
   apiClearHistory,
+  apiDeleteHistoryEntry,
 } from '@/services/api.ts';
 import type { HistoryEntry, Product } from '@/types/index.ts';
 
@@ -177,6 +178,20 @@ export function updateHistoryWithQty(
   // Sync qty values to D1 history table (fire-and-forget)
   if (navigator.onLine) {
     apiAddHistory(idStr, updated.name, qty, pullQty).catch(() => undefined);
+  }
+}
+
+/**
+ * Removes a single entry from history locally and from D1 (by rowId).
+ * If the entry has no rowId (offline-only), only the local array is updated.
+ */
+export function removeFromHistory(id: string): void {
+  const entry = _history.find(h => h.id === id);
+  _history = _history.filter(h => h.id !== id);
+  saveToStorage(_history);
+
+  if (navigator.onLine && entry?.rowId !== undefined) {
+    apiDeleteHistoryEntry(entry.rowId).catch(() => undefined);
   }
 }
 

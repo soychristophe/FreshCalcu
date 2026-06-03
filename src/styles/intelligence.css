@@ -1,0 +1,285 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Intelligence Panel — FreshWays Pro
+   Predictive product suggestions based on time-of-day proximity.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Trigger button (inside #sped-float-btns) ────────────────────────────── */
+#intel-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 0.55rem 1.1rem;
+  border-radius: 2rem;
+  border: 1.5px solid rgba(200, 245, 66, 0.35);
+  background: rgba(30, 30, 40, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  color: #c8f542;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, background 0.2s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+#intel-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: #c8f542;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+#intel-btn:hover  { background: rgba(200, 245, 66, 0.12); }
+#intel-btn:active { transform: scale(0.96); }
+
+/* ── Backdrop ────────────────────────────────────────────────────────────── */
+.intel-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 599;
+  background: rgba(0, 0, 0, 0.5);
+}
+.intel-backdrop.open { display: block; }
+
+/* ── Panel (bottom sheet) ────────────────────────────────────────────────── */
+#intel-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 600;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  background: #111316;
+  border-radius: 20px 20px 0 0;
+  border-top: 1.5px solid rgba(200, 245, 66, 0.18);
+  padding: 0 0 env(safe-area-inset-bottom, 12px) 0;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow: hidden;
+}
+
+#intel-panel.open {
+  transform: translateY(0);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.intel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+}
+
+.intel-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c8f542;
+}
+
+.intel-title svg {
+  stroke: #c8f542;
+  flex-shrink: 0;
+}
+
+.intel-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.intel-icon-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intel-icon-btn svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.intel-icon-btn:hover  { color: #fff; background: rgba(255,255,255,0.08); }
+.intel-icon-btn:active { transform: scale(0.93); }
+
+/* ── Status line ──────────────────────────────────────────────────────────── */
+.intel-status {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.38);
+  padding: 6px 16px 2px;
+  margin: 0;
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* ── Scrollable list ─────────────────────────────────────────────────────── */
+.intel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.intel-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+  padding: 28px 16px;
+  margin: 0;
+}
+
+/* ── Candidate card ──────────────────────────────────────────────────────── */
+.intel-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 8px;
+  transition: background 0.15s;
+}
+
+.intel-card:last-child { margin-bottom: 0; }
+.intel-card:hover { background: rgba(255, 255, 255, 0.07); }
+
+/* Rank badge */
+.intel-rank {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(200, 245, 66, 0.12);
+  color: #c8f542;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.02em;
+}
+
+/* Body */
+.intel-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.intel-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.intel-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.intel-badge-time,
+.intel-badge-freq {
+  font-size: 0.68rem;
+  font-family: 'DM Mono', monospace;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+}
+
+.intel-badge-time { color: #c8f542; background: rgba(200, 245, 66, 0.1); }
+
+/* Progress bar */
+.intel-bar-wrap {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.intel-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.intel-bar--high { background: #c8f542; }
+.intel-bar--mid  { background: #f5a623; }
+.intel-bar--low  { background: #ff6b6b; }
+
+/* Score row */
+.intel-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.intel-score-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.intel-score-val {
+  font-size: 0.7rem;
+  font-family: 'DM Mono', monospace;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* SPED button */
+.intel-sped-btn {
+  flex-shrink: 0;
+  background: rgba(200, 245, 66, 0.12);
+  border: 1px solid rgba(200, 245, 66, 0.3);
+  color: #c8f542;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 7px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.intel-sped-btn:hover  { background: rgba(200, 245, 66, 0.22); }
+.intel-sped-btn:active { transform: scale(0.93); background: rgba(200, 245, 66, 0.3); }
