@@ -16,7 +16,14 @@ import type {
 /* ── Helpers ────────────────────────────────────────────────────────────── */
 
 function signal(ms: number): AbortSignal {
-  return AbortSignal.timeout(ms);
+  // AbortSignal.timeout() not available in Safari < 16 / older Android WebViews.
+  // Fallback: AbortController + setTimeout, works everywhere.
+  if (typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(ms);
+  }
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
 }
 
 async function getJson<T>(url: string, timeoutMs: number): Promise<T> {
