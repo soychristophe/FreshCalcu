@@ -384,6 +384,8 @@ async function _doOpenForm(id: string | null): Promise<void> {
 function closeForm(): void {
   findEl('pp-form-overlay')?.classList.remove('open');
   panelState.editingId = null;
+  const saveBtn = findEl<HTMLButtonElement>('pp-form-save');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
 }
 
 async function saveProduct(): Promise<void> {
