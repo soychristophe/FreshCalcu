@@ -8,6 +8,7 @@ import '@/styles/msj.css';
 import '@/styles/speed.css';
 import '@/styles/history.css';
 import '@/styles/products-panel.css';
+import '@/styles/intelligence.css';
 
 // ─── src/main.ts ──────────────────────────────────────────────────────────────
 // Application entry point.
@@ -50,7 +51,8 @@ import {
   toggleHistoryAllPanel,
   applyHistoryAllFilter,
 }                            from '@/components/history/historyAll.ts';
-import { initProductsPanel } from '@/components/products-panel/index.ts';
+import { initProductsPanel } from '@/components/products-panel/products-panel.index.ts';
+import { initIntelligence }  from '@/components/intelligence/intelligence.ts';
 
 import { loadProductCache }  from '@/services/productCache.ts';
 import { syncHistoryFromDB } from '@/services/historyService.ts';
@@ -148,6 +150,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Products panel (self-injecting)
   initProductsPanel();
+  initIntelligence();
 
   // Initial render
   el.display.textContent = state.calcVal;
