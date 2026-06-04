@@ -150,7 +150,10 @@ function watchFloatButtonsVisibility(): void {
   const update = () => {
     const isSpedTabActive = secSped.style.display !== 'none' && secSped.style.display !== '';
     const isSearching     = spedStep1.classList.contains('is-searching');
-    const isStep1Visible  = spedStep1.style.display !== 'none' && spedStep1.style.display !== '';
+    // style.display === '' means no inline style → visible via CSS class (.active-step)
+    // style.display === 'flex' means setSpedView('step1') was already called
+    // style.display === 'none' means another view is active
+    const isStep1Visible  = spedStep1.style.display !== 'none';
 
     // ✅ Los botones SOLO deben mostrarse si:
     // 1. Estamos en la pestaña SPED
