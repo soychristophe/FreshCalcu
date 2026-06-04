@@ -10,8 +10,10 @@ import { haptic, findEl }        from '@/utils/dom.ts';
 import type { HistoryAllEntry }  from '@/types/index.ts';
 
 let _entries: HistoryAllEntry[] = [];
-let _panelOpen  = false;
-let _loading    = false;
+let _panelOpen    = false;
+let _loading      = false;
+let _searchQuery  = '';
+let _searchOpen   = false;
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -60,7 +62,28 @@ export async function toggleHistoryAllPanel(): Promise<void> {
 }
 
 export async function applyHistoryAllFilter(): Promise<void> {
+  _searchQuery = '';
+  _clearSearchInput();
   await loadHistoryAll();
+}
+
+export function toggleSearchDrawer(): void {
+  _searchOpen = !_searchOpen;
+  const drawer  = findEl('history-all-search-drawer');
+  const iconBtn = findEl('history-all-search-btn');
+  if (!drawer) return;
+  if (_searchOpen) {
+    drawer.classList.add('open');
+    iconBtn?.classList.add('active');
+    findEl<HTMLInputElement>('history-all-search-input')?.focus();
+  } else {
+    drawer.classList.remove('open');
+    iconBtn?.classList.remove('active');
+    _searchQuery = '';
+    _clearSearchInput();
+    renderHistoryAllList();
+  }
+  haptic();
 }
 
 export async function clearHistoryAll(): Promise<void> {
@@ -101,6 +124,7 @@ async function loadHistoryAll(): Promise<void> {
     }
     renderHistoryAllList();
     renderExportButton();
+    _wireSearchInput();
   } catch {
     if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
     renderExportButton();
@@ -113,13 +137,33 @@ function renderHistoryAllList(): void {
   const listEl = findEl('history-all-list');
   if (!listEl) return;
 
-  if (_entries.length === 0) {
-    listEl.innerHTML = '<p class="history-empty">No entries found.</p>';
+  const q = _searchQuery.trim().toLowerCase();
+  const visible = q
+    ? _entries.filter(e =>
+        e.barcode_id.toLowerCase().includes(q) ||
+        (e.product_name ?? '').toLowerCase().includes(q),
+      )
+    : _entries;
+
+  if (visible.length === 0) {
+    listEl.innerHTML = q
+      ? '<p class="history-empty">No results for that search.</p>'
+      : '<p class="history-empty">No entries found.</p>';
     return;
   }
 
+  // Update count label to reflect filtered results
+  const countEl = findEl('history-all-count');
+  if (countEl) {
+    const fromVal = (findEl<HTMLInputElement>('history-all-from'))?.value ?? '';
+    const toVal   = (findEl<HTMLInputElement>('history-all-to'))?.value   ?? '';
+    const dateTag = (fromVal || toVal) ? ' (filtered)' : '';
+    const srchTag = q ? ` · "${_searchQuery}" → ${visible.length}` : '';
+    countEl.textContent = `${_entries.length} entries${dateTag}${srchTag}`;
+  }
+
   const frag = document.createDocumentFragment();
-  _entries.forEach(entry => {
+  visible.forEach(entry => {
     const row = document.createElement('div');
     row.className = 'history-item history-all-item';
 
@@ -192,6 +236,30 @@ async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement)
   }
 }
 
+/* ── Search helpers ──────────────────────────────────────────────────────── */
+
+function _wireSearchInput(): void {
+  const input = findEl<HTMLInputElement>('history-all-search-input');
+  if (!input || input.dataset['searchWired']) return;
+  input.dataset['searchWired'] = '1';
+  input.addEventListener('input', () => {
+    _searchQuery = input.value;
+    renderHistoryAllList();
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      _searchQuery = '';
+      input.value  = '';
+      renderHistoryAllList();
+    }
+  });
+}
+
+function _clearSearchInput(): void {
+  const input = findEl<HTMLInputElement>('history-all-search-input');
+  if (input) input.value = '';
+}
+
 /* ── CSV Export ──────────────────────────────────────────────────────────── */
 
 /**
@@ -216,6 +284,20 @@ function renderExportButton(): void {
   // Insert before the close button
   const closeBtn = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
   actionsEl.insertBefore(btn, closeBtn);
+
+  // Inject search icon button if not already present
+  if (!findEl('history-all-search-btn')) {
+    const searchBtn = document.createElement('button');
+    searchBtn.id        = 'history-all-search-btn';
+    searchBtn.className = 'btn-hall-search';
+    searchBtn.title     = 'Search by barcode or name';
+    searchBtn.setAttribute('data-action', 'toggleSearchDrawer');
+    searchBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>`;
+    actionsEl.insertBefore(searchBtn, btn);
+  }
 }
 
 function escapeCSVField(value: string | number | null): string {

@@ -8,7 +8,6 @@ import '@/styles/msj.css';
 import '@/styles/speed.css';
 import '@/styles/history.css';
 import '@/styles/products-panel.css';
-import '@/styles/intelligence.css';
 
 // ─── src/main.ts ──────────────────────────────────────────────────────────────
 // Application entry point.
@@ -50,9 +49,9 @@ import {
 import {
   toggleHistoryAllPanel,
   applyHistoryAllFilter,
+  toggleSearchDrawer,
 }                            from '@/components/history/historyAll.ts';
-import { initProductsPanel } from '@/components/products-panel/products-panel.index.ts';
-import { initIntelligence }  from '@/components/intelligence/intelligence.ts';
+import { initProductsPanel } from '@/components/products-panel/index.ts';
 
 import { loadProductCache }  from '@/services/productCache.ts';
 import { syncHistoryFromDB } from '@/services/historyService.ts';
@@ -150,7 +149,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Products panel (self-injecting)
   initProductsPanel();
-  initIntelligence();
 
   // Initial render
   el.display.textContent = state.calcVal;
@@ -231,6 +229,7 @@ const ACTION_MAP: Record<string, (arg: ActionArg, target: Element) => void> = {
   clearHistory:                ()  => clearHistory(),
   toggleHistoryAllPanel:       ()  => void toggleHistoryAllPanel(),
   applyHistoryAllFilter:       ()  => void applyHistoryAllFilter(),
+  toggleSearchDrawer:          ()  => toggleSearchDrawer(),
 };
 
 document.body.addEventListener('click', (e: MouseEvent) => {
