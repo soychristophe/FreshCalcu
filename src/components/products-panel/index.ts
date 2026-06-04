@@ -11,7 +11,7 @@ import {
 import { refreshProductCache, getCacheTimestamp } from '@/services/productCache.ts';
 import { transformValuesInput }   from '@/utils/format.ts';
 import { esc, findEl }            from '@/utils/dom.ts';
-import { DELETE_PIN, EDIT_PIN }             from '@/config/constants.ts';
+import { DELETE_PIN }             from '@/config/constants.ts';
 import type { Product, ProductPage } from '@/types/index.ts';
 
 /* ── Module-private state ────────────────────────────────────────────────── */
@@ -131,11 +131,6 @@ function bindEvents(): void {
   findEl('history-all-btn')?.addEventListener('click', async () => {
     const { toggleHistoryAllPanel } = await import('@/components/history/historyAll.ts');
     void toggleHistoryAllPanel();
-  });
-
-  findEl('intel-btn')?.addEventListener('click', async () => {
-    const { toggleIntelligencePanel } = await import('@/components/intelligence/intelligence.ts');
-    void toggleIntelligencePanel();
   });
 }
 
@@ -297,6 +292,7 @@ function productRow(p: Product): string {
 }
 
 /* ── Edit password ───────────────────────────────────────────────────────── */
+const EDIT_PIN = '1986';
 let _pendingEditId: string | null = null;
 
 function openEditPasswordPopup(id: string): void {
@@ -373,9 +369,6 @@ async function _doOpenForm(id: string | null): Promise<void> {
     inputId.disabled = false;
     if (fieldId) (fieldId as HTMLElement).style.opacity = '1';
   }
-
-  // Ensure _suppressAutofill() doesn't block typing in dynamically-injected inputs
-  [inputId, inputName, inputSku, inputVals].forEach(el => el?.removeAttribute('readonly'));
 
   overlay?.classList.add('open');
   setTimeout(() => (inputId.disabled ? inputName.focus() : inputId.focus()), 250);
@@ -520,10 +513,6 @@ function injectHTML(): void {
         Products
       </button>
       <button id="history-all-btn" aria-label="View full cloud history">☁️ History All</button>
-      <button id="intel-btn" aria-label="Product predictions">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        AI
-      </button>
     </div>
     <div id="products-panel-overlay" role="dialog" aria-modal="true" aria-label="Product catalog">
       <div id="products-panel">
