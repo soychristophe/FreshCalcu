@@ -4,39 +4,42 @@
 // Scoring model (per product, last 30 days of history-all, excluding today):
 //   score = timeScore + baseScore
 //
-//   timeScore  (70% dominance via Gaussian bell curve)
-//     avgHour  = mean decimal hour of historical scans  (08:15 → 8.25)
-//     hourDiff = |currentHour - avgHour|
-//     timeScore = exp( -hourDiff² / 2 )           → 1.0 at exact hour,
-//                                                     ~0.60 at ±1 h,
-//                                                     ~0.08 at ±3 h
+//   timeScore  (Gaussian bell curve, dominant)
+//     avgHour   = mean decimal hour of historical scans  (08:15 → 8.25)
+//     hourDiff  = |currentHour - avgHour|
+//     timeScore = exp( -hourDiff² / 2 )
 //
 //   baseScore  (frequency + recency, 30% weight)
-//     freq30   = occurrences in last 30 days / 30   (normalised 0‥1)
-//     recency  = Σ exp(-dayAge) for each scan       (exponential decay)
+//     freq30    = occurrences in last 30 days / 30
+//     recency   = Σ exp(-dayAge), capped & normalised
 //     baseScore = freq30 * 0.20 + recency * 0.10
 //
-// Top 5 candidates are shown, excluding barcodes already scanned today.
+// Output:
+//   · Up to 5 UPCOMING candidates  (avgHour >= currentHour)
+//   · Up to 3 OVERDUE candidates   (avgHour <  currentHour, not yet scanned today)
+//     — Overdue section is hidden when empty.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { apiGetHistoryAll }  from '@/services/api.ts';
-import { getHistory }        from '@/services/historyService.ts';
-import { haptic, findEl }    from '@/utils/dom.ts';
+import { apiGetHistoryAll } from '@/services/api.ts';
+import { getHistory }       from '@/services/historyService.ts';
+import { haptic, findEl }   from '@/utils/dom.ts';
 import type { HistoryAllEntry } from '@/types/index.ts';
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 
 export interface Candidate {
-  readonly barcode:      string;
-  readonly name:         string;
+  readonly barcode:   string;
+  readonly name:      string;
   /** Mean decimal hour across all historical scans (e.g. 8.25 = 08:15). */
-  readonly avgHour:      number;
+  readonly avgHour:   number;
   /** Gaussian time-proximity score [0, 1]. */
-  readonly timeScore:    number;
-  /** Combined final score (timeScore + baseScore). */
-  readonly score:        number;
-  /** Number of occurrences in the last 30 days. */
-  readonly freq:         number;
+  readonly timeScore: number;
+  /** Combined final score. */
+  readonly score:     number;
+  /** Occurrences in the last 30 days. */
+  readonly freq:      number;
+  /** True when avgHour < currentHour — product should have been scanned already. */
+  readonly isLate:    boolean;
 }
 
 /* ── Internal state ──────────────────────────────────────────────────────── */
@@ -83,115 +86,90 @@ function _bindEvents(): void {
 
 /* ── Algorithm ───────────────────────────────────────────────────────────── */
 
-/**
- * Returns today's date as "YYYY-MM-DD" in local time.
- * Used both to exclude today's records from training and to set the
- * 30-day window floor.
- */
 function _todayISO(): string {
-  const d    = new Date();
-  const yyyy = d.getFullYear();
-  const mm   = String(d.getMonth() + 1).padStart(2, '0');
-  const dd   = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Current time as decimal hours (e.g. 08:15:00 → 8.25). */
 function _currentHour(): number {
-  const now = new Date();
-  return now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  const n = new Date();
+  return n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600;
 }
 
-/**
- * Gaussian bell curve centred on 0.
- * Returns 1.0 when hourDiff = 0, ~0.60 at ±1 h, ~0.08 at ±3 h.
- */
 function _gauss(hourDiff: number): number {
   return Math.exp(-(hourDiff * hourDiff) / 2);
 }
 
-/**
- * Formats a decimal hour as "HH:MM" (e.g. 8.25 → "08:15").
- */
 function _fmtHour(h: number): string {
   const totalMin = Math.round(h * 60);
   const hh = Math.floor(totalMin / 60) % 24;
-  const mm = totalMin % 60;
+  const mm  = totalMin % 60;
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
 /**
- * Core scoring engine.
- *
- * @param entries  Raw history-all rows (already filtered to last 30 days,
- *                 today excluded — filtering happens in the caller).
- * @param todayIds Set of barcode IDs already processed today (excluded).
- * @returns        Top-5 candidates sorted by score descending.
+ * Scores all products and returns two sorted lists:
+ *   upcoming — avgHour >= nowHour, top 5
+ *   overdue  — avgHour <  nowHour (should already be scanned), top 3
  */
 function _score(
   entries:  HistoryAllEntry[],
   todayIds: Set<string>,
-): Candidate[] {
-  const nowHour    = _currentHour();
-  const nowMs      = Date.now();
-  const msPerDay   = 86_400_000;
+): { upcoming: Candidate[]; overdue: Candidate[] } {
+  const nowHour  = _currentHour();
+  const nowMs    = Date.now();
+  const msPerDay = 86_400_000;
 
-  // Group entries by barcode
-  const groups = new Map<string, { name: string; hours: number[]; dayAges: number[] }>();
+  const groups = new Map<string, {
+    name:     string;
+    hours:    number[];
+    dayAges:  number[];
+  }>();
 
   for (const e of entries) {
-    if (todayIds.has(e.barcode_id)) continue;           // already scanned today
+    if (todayIds.has(e.barcode_id)) continue;
 
     const dt = new Date(e.scanned_at);
-    if (isNaN(dt.getTime())) continue;                  // malformed timestamp
+    if (isNaN(dt.getTime())) continue;
 
     const decHour = dt.getHours() + dt.getMinutes() / 60 + dt.getSeconds() / 3600;
-    const dayAge  = (nowMs - dt.getTime()) / msPerDay;  // days since scan
+    const dayAge  = (nowMs - dt.getTime()) / msPerDay;
 
-    const key = e.barcode_id;
-    if (!groups.has(key)) {
-      groups.set(key, { name: e.product_name || key, hours: [], dayAges: [] });
+    if (!groups.has(e.barcode_id)) {
+      groups.set(e.barcode_id, { name: e.product_name || e.barcode_id, hours: [], dayAges: [] });
     }
-    const g = groups.get(key)!;
+    const g = groups.get(e.barcode_id)!;
     g.hours.push(decHour);
     g.dayAges.push(dayAge);
   }
 
-  const candidates: Candidate[] = [];
+  const upcoming: Candidate[] = [];
+  const overdue:  Candidate[] = [];
 
   for (const [barcode, g] of groups) {
     const n = g.hours.length;
     if (n === 0) continue;
 
-    // 1. Average hour (simple mean — circular mean not needed for <24h range)
-    const avgHour = g.hours.reduce((s, h) => s + h, 0) / n;
-
-    // 2. Time score — Gaussian proximity (dominant, ~70% of final score)
+    const avgHour   = g.hours.reduce((s, h) => s + h, 0) / n;
     const hourDiff  = Math.abs(nowHour - avgHour);
     const timeScore = _gauss(hourDiff);
-
-    // 3. Frequency component: occurrences / 30 (normalised [0, 1])
-    const freq30 = Math.min(n / 30, 1);
-
-    // 4. Recency component: exponential decay sum, normalised [0, 1]
-    //    exp(-dayAge) gives ~1 for today, ~0.37 at 1 day, ~0.05 at 3 days.
-    //    We cap the sum at 10 to keep it in a sane range before normalising.
-    const rawRecency = g.dayAges.reduce((s, age) => s + Math.exp(-age), 0);
-    const recency    = Math.min(rawRecency / 10, 1);
-
-    // 5. Base score (frequency + recency, 30% combined weight)
+    const freq30    = Math.min(n / 30, 1);
+    const rawRec    = g.dayAges.reduce((s, a) => s + Math.exp(-a), 0);
+    const recency   = Math.min(rawRec / 10, 1);
     const baseScore = freq30 * 0.20 + recency * 0.10;
+    const score     = timeScore + baseScore;
+    const isLate    = avgHour < nowHour;
 
-    // 6. Final score
-    const score = timeScore + baseScore;
+    const c: Candidate = { barcode, name: g.name, avgHour, timeScore, score, freq: n, isLate };
 
-    candidates.push({ barcode, name: g.name, avgHour, timeScore, score, freq: n });
+    if (isLate) overdue.push(c);
+    else        upcoming.push(c);
   }
 
-  // Sort descending, return top 5
-  return candidates
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+  return {
+    upcoming: upcoming.sort((a, b) => b.score - a.score).slice(0, 5),
+    overdue:  overdue.sort((a, b) => b.score - a.score).slice(0, 3),
+  };
 }
 
 /* ── Data loading ────────────────────────────────────────────────────────── */
@@ -200,18 +178,16 @@ async function _loadAndRender(): Promise<void> {
   if (_loading) return;
   _loading = true;
 
-  const listEl    = findEl('intel-list');
-  const statusEl  = findEl('intel-status');
-  if (listEl)   listEl.innerHTML   = '';
-  if (statusEl) statusEl.textContent = 'Analysing...';
+  const listEl   = findEl('intel-list');
+  const statusEl = findEl('intel-status');
+  if (listEl)   listEl.innerHTML      = '';
+  if (statusEl) statusEl.textContent  = 'Analysing…';
 
   try {
-    // Training window: last 30 days (excluding today)
-    const today   = _todayISO();
-    const d30ago  = new Date(Date.now() - 30 * 86_400_000);
-    const from    = `${d30ago.getFullYear()}-${String(d30ago.getMonth() + 1).padStart(2, '0')}-${String(d30ago.getDate()).padStart(2, '0')}`;
+    const today  = _todayISO();
+    const d30ago = new Date(Date.now() - 30 * 86_400_000);
+    const from   = `${d30ago.getFullYear()}-${String(d30ago.getMonth() + 1).padStart(2, '0')}-${String(d30ago.getDate()).padStart(2, '0')}`;
 
-    // Fetch up to 2 000 rows from history-all for the window
     const data = await apiGetHistoryAll({ from, to: today, limit: 2000 });
     if (!data || data.entries.length === 0) {
       if (statusEl) statusEl.textContent = 'Not enough historical data yet.';
@@ -219,27 +195,22 @@ async function _loadAndRender(): Promise<void> {
       return;
     }
 
-    // Exclude today's entries from training data
     const trainingEntries = data.entries.filter(e => {
-      try {
-        const d = new Date(e.scanned_at);
-        if (isNaN(d.getTime())) return false;
-        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        return iso !== today;
-      } catch { return false; }
+      const d = new Date(e.scanned_at);
+      if (isNaN(d.getTime())) return false;
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return iso !== today;
     });
 
-    // Build the set of barcodes already scanned today (local history)
-    const todayIds = new Set(getHistory().map(h => String(h.id)));
-
-    const candidates = _score(trainingEntries, todayIds);
+    const todayIds  = new Set(getHistory().map(h => String(h.id)));
+    const { upcoming, overdue } = _score(trainingEntries, todayIds);
 
     if (statusEl) {
-      statusEl.textContent =
-        `${trainingEntries.length} records · ${new Set(trainingEntries.map(e => e.barcode_id)).size} products · now ${_fmtHour(_currentHour())}`;
+      const uniq = new Set(trainingEntries.map(e => e.barcode_id)).size;
+      statusEl.textContent = `${trainingEntries.length} records · ${uniq} products · ${_fmtHour(_currentHour())}`;
     }
 
-    _renderCandidates(candidates, listEl);
+    _renderAll(upcoming, overdue, listEl);
   } catch (err) {
     console.error('[Intelligence]', err);
     if (statusEl) statusEl.textContent = '⚠️ Error loading data.';
@@ -251,79 +222,93 @@ async function _loadAndRender(): Promise<void> {
 
 /* ── Render ──────────────────────────────────────────────────────────────── */
 
-function _renderCandidates(candidates: Candidate[], listEl: HTMLElement | null): void {
+function _renderAll(
+  upcoming: Candidate[],
+  overdue:  Candidate[],
+  listEl:   HTMLElement | null,
+): void {
   if (!listEl) return;
 
-  if (candidates.length === 0) {
+  if (upcoming.length === 0 && overdue.length === 0) {
     listEl.innerHTML = '<p class="intel-empty">No predictions — all likely products already scanned today.</p>';
     return;
   }
 
   const frag = document.createDocumentFragment();
 
-  candidates.forEach((c, idx) => {
-    const confidence = Math.min(c.timeScore, 1);  // already [0,1] from Gauss
-    const pct        = Math.round(confidence * 100);
+  // ── Upcoming ─────────────────────────────────────────────────────────────
+  if (upcoming.length > 0) {
+    const sec = document.createElement('p');
+    sec.className   = 'intel-section-label';
+    sec.textContent = '▲ Upcoming';
+    frag.appendChild(sec);
+    upcoming.forEach((c, i) => frag.appendChild(_buildCard(c, i + 1, false)));
+  }
 
-    // Colour band: green ≥ 70, amber ≥ 40, red < 40
-    const band = pct >= 70 ? 'high' : pct >= 40 ? 'mid' : 'low';
-
-    const card = document.createElement('div');
-    card.className = 'intel-card';
-
-    card.innerHTML = `
-      <div class="intel-rank">#${idx + 1}</div>
-      <div class="intel-body">
-        <div class="intel-name">${_esc(c.name)}</div>
-        <div class="intel-meta">
-          <span class="intel-badge-time">⏱ Usual: ${_fmtHour(c.avgHour)}</span>
-          <span class="intel-badge-freq">${c.freq}× / 30d</span>
-        </div>
-        <div class="intel-bar-wrap" title="Time confidence: ${pct}%">
-          <div class="intel-bar intel-bar--${band}" style="width:${pct}%"></div>
-        </div>
-        <div class="intel-score-row">
-          <span class="intel-score-label">Confidence</span>
-          <span class="intel-score-val">${pct}%</span>
-        </div>
-      </div>
-      <button class="intel-sped-btn" data-barcode="${_esc(c.barcode)}" title="Load in SPED">
-        ▶ SPED
-      </button>
-    `;
-
-    // Wire SPED button
-    card.querySelector<HTMLButtonElement>('.intel-sped-btn')?.addEventListener('click', () => {
-      haptic();
-      _closePanel();
-      // Small delay so the panel closes before SPED steals focus
-      setTimeout(() => {
-        document.dispatchEvent(
-          new CustomEvent('sped:prefill', { detail: { productId: c.barcode } }),
-        );
-      }, 120);
-    });
-
-    frag.appendChild(card);
-  });
+  // ── Overdue (only when there are any) ────────────────────────────────────
+  if (overdue.length > 0) {
+    const sec = document.createElement('p');
+    sec.className   = 'intel-section-label intel-section-label--late';
+    sec.textContent = '⚠ Overdue';
+    frag.appendChild(sec);
+    overdue.forEach((c, i) => frag.appendChild(_buildCard(c, i + 1, true)));
+  }
 
   listEl.replaceChildren(frag);
+}
+
+function _buildCard(c: Candidate, rank: number, late: boolean): HTMLElement {
+  const pct  = Math.round(Math.min(c.timeScore, 1) * 100);
+  const band = pct >= 70 ? 'high' : pct >= 40 ? 'mid' : 'low';
+
+  const card = document.createElement('div');
+  card.className = late ? 'intel-card intel-card--late' : 'intel-card';
+
+  card.innerHTML = `
+    <div class="intel-rank${late ? ' intel-rank--late' : ''}">${rank}</div>
+    <div class="intel-body">
+      <div class="intel-row-top">
+        <span class="intel-name">${_esc(c.name)}</span>
+        <span class="intel-barcode">${_esc(c.barcode)}</span>
+      </div>
+      <div class="intel-row-mid">
+        <span class="intel-badge-time">⏱ ${_fmtHour(c.avgHour)}</span>
+        <span class="intel-badge-freq">${c.freq}×</span>
+        <div class="intel-bar-wrap" title="Confidence: ${pct}%">
+          <div class="intel-bar intel-bar--${band}" style="width:${pct}%"></div>
+        </div>
+        <span class="intel-pct">${pct}%</span>
+      </div>
+    </div>
+    <button class="intel-sped-btn" title="Load in SPED">▶</button>
+  `;
+
+  card.querySelector<HTMLButtonElement>('.intel-sped-btn')?.addEventListener('click', () => {
+    haptic();
+    _closePanel();
+    setTimeout(() => {
+      document.dispatchEvent(
+        new CustomEvent('sped:prefill', { detail: { productId: c.barcode } }),
+      );
+    }, 120);
+  });
+
+  return card;
 }
 
 /* ── HTML injection ──────────────────────────────────────────────────────── */
 
 function _injectHTML(): void {
-  if (findEl('intel-panel')) return; // already injected
+  if (findEl('intel-panel')) return;
 
   document.body.insertAdjacentHTML('beforeend', `
     <div id="intel-backdrop" class="intel-backdrop"></div>
     <div id="intel-panel" role="dialog" aria-modal="true" aria-label="Product Intelligence">
       <div class="intel-header">
         <span class="intel-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.2"
-               stroke-linecap="round" stroke-linejoin="round"
-               aria-hidden="true">
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -331,7 +316,7 @@ function _injectHTML(): void {
           Predictions
         </span>
         <div class="intel-header-actions">
-          <button id="intel-refresh-btn" class="intel-icon-btn" title="Refresh predictions">
+          <button id="intel-refresh-btn" class="intel-icon-btn" title="Refresh">
             <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/>
             <polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -345,7 +330,7 @@ function _injectHTML(): void {
           </button>
         </div>
       </div>
-      <p id="intel-status" class="intel-status">Loading...</p>
+      <p id="intel-status" class="intel-status">Loading…</p>
       <div id="intel-list" class="intel-list"></div>
     </div>
   `);
@@ -355,8 +340,8 @@ function _injectHTML(): void {
 
 function _esc(s: string): string {
   return s
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/"/g,  '&quot;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
