@@ -148,28 +148,25 @@ function watchFloatButtonsVisibility(): void {
   if (!container || !secSped || !spedStep1) return;
 
   const update = () => {
-    const isSpedTabActive = secSped.style.display !== 'none' && secSped.style.display !== '';
-    const isSearching     = spedStep1.classList.contains('is-searching');
-    // style.display === '' means no inline style → visible via CSS class (.active-step)
-    // style.display === 'flex' means setSpedView('step1') was already called
-    // style.display === 'none' means another view is active
-    const isStep1Visible  = spedStep1.style.display !== 'none';
+    // Use getComputedStyle so the initial CSS class (.sped-container visible by default)
+    // is also detected — not just inline style.display set by the tab switcher.
+    const spedComputed  = getComputedStyle(secSped).display;
+    const step1Computed = getComputedStyle(spedStep1).display;
 
-    // ✅ Los botones SOLO deben mostrarse si:
-    // 1. Estamos en la pestaña SPED
-    // 2. La vista step1 está activa (no calc-result/pull-result)
-    // 3. NO estamos buscando
+    const isSpedTabActive = spedComputed  !== 'none';
+    const isStep1Visible  = step1Computed !== 'none';
+    const isSearching     = spedStep1.classList.contains('is-searching');
+
     const shouldHide = !isSpedTabActive || isSearching || !isStep1Visible;
     container.classList.toggle('hidden', shouldHide);
   };
 
-  // Observa cambios en la pestaña SPED
-  new MutationObserver(update).observe(secSped, { attributes: true, attributeFilter: ['style', 'hidden'] });
-  // Observa cambios en step1 (clase is-searching + estilo display)
-  new MutationObserver(update).observe(spedStep1, { attributes: true, attributeFilter: ['class', 'style'] });
+  // Observe style/class changes on both elements
+  new MutationObserver(update).observe(secSped,   { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+  new MutationObserver(update).observe(spedStep1, { attributes: true, attributeFilter: ['style', 'class'] });
 
-  // Estado inicial
-  update();
+  // Initial state — defer one frame so CSS is fully applied
+  requestAnimationFrame(update);
 }
 
 /* ── Panel open / close ──────────────────────────────────────────────────── */
