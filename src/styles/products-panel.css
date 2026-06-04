@@ -25,10 +25,10 @@
   pointer-events: none;
 }
 
-/* ── Estilo compartido: Products, History All y AI ─────────────────────── */
+/* ── Estilo compartido: Products y History All ──────────────────────────── */
+/* #intel-btn está definido en intelligence.css                              */
 #products-btn,
-#history-all-btn,
-#intel-btn {
+#history-all-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -64,18 +64,6 @@
 
 #products-btn:active    { transform: scale(0.96); }
 #history-all-btn:active { transform: scale(0.96); }
-#intel-btn:active       { transform: scale(0.96); }
-
-#intel-btn {
-  border-color: rgba(200, 245, 66, 0.35);
-  color: #c8f542;
-}
-#intel-btn svg {
-  width: 15px; height: 15px;
-  stroke: currentColor; fill: none;
-  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
-  flex-shrink: 0;
-}
 
 /* ── Overlay del panel ──────────────────────────────────────────────────── */
 #products-panel-overlay {
