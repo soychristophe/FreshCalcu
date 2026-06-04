@@ -148,25 +148,25 @@ function watchFloatButtonsVisibility(): void {
   if (!container || !secSped || !spedStep1) return;
 
   const update = () => {
-    const isSpedTabActive = secSped.style.display !== 'none' && secSped.style.display !== '';
-    const isSearching     = spedStep1.classList.contains('is-searching');
-    const isStep1Visible  = spedStep1.style.display !== 'none' && spedStep1.style.display !== '';
+    // Use getComputedStyle so the initial CSS class (.sped-container visible by default)
+    // is also detected — not just inline style.display set by the tab switcher.
+    const spedComputed  = getComputedStyle(secSped).display;
+    const step1Computed = getComputedStyle(spedStep1).display;
 
-    // ✅ Los botones SOLO deben mostrarse si:
-    // 1. Estamos en la pestaña SPED
-    // 2. La vista step1 está activa (no calc-result/pull-result)
-    // 3. NO estamos buscando
+    const isSpedTabActive = spedComputed  !== 'none';
+    const isStep1Visible  = step1Computed !== 'none';
+    const isSearching     = spedStep1.classList.contains('is-searching');
+
     const shouldHide = !isSpedTabActive || isSearching || !isStep1Visible;
     container.classList.toggle('hidden', shouldHide);
   };
 
-  // Observa cambios en la pestaña SPED
-  new MutationObserver(update).observe(secSped, { attributes: true, attributeFilter: ['style', 'hidden'] });
-  // Observa cambios en step1 (clase is-searching + estilo display)
-  new MutationObserver(update).observe(spedStep1, { attributes: true, attributeFilter: ['class', 'style'] });
+  // Observe style/class changes on both elements
+  new MutationObserver(update).observe(secSped,   { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+  new MutationObserver(update).observe(spedStep1, { attributes: true, attributeFilter: ['style', 'class'] });
 
-  // Estado inicial
-  update();
+  // Initial state — defer one frame so CSS is fully applied
+  requestAnimationFrame(update);
 }
 
 /* ── Panel open / close ──────────────────────────────────────────────────── */
@@ -384,6 +384,8 @@ async function _doOpenForm(id: string | null): Promise<void> {
 function closeForm(): void {
   findEl('pp-form-overlay')?.classList.remove('open');
   panelState.editingId = null;
+  const saveBtn = findEl<HTMLButtonElement>('pp-form-save');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
 }
 
 async function saveProduct(): Promise<void> {
@@ -522,7 +524,7 @@ function injectHTML(): void {
       <button id="history-all-btn" aria-label="View full cloud history">☁️ History All</button>
       <button id="intel-btn" aria-label="Product predictions">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        AI
+        NEXT
       </button>
     </div>
     <div id="products-panel-overlay" role="dialog" aria-modal="true" aria-label="Product catalog">
@@ -602,6 +604,8 @@ function injectHTML(): void {
         </div>
       </div>
     </div>
+
+    <div id="pp-toast"></div>
 
     <div id="pp-editpwd-overlay">
       <div id="pp-editpwd-modal">
