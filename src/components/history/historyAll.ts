@@ -10,16 +10,16 @@ import { haptic, findEl }        from '@/utils/dom.ts';
 import type { HistoryAllEntry }  from '@/types/index.ts';
 
 let _entries: HistoryAllEntry[] = [];
-let _panelOpen    = false;
-let _loading      = false;
-let _searchQuery  = '';
-let _searchOpen   = false;
+let _panelOpen   = false;
+let _loading     = false;
+let _searchQuery = '';
+let _searchOpen  = false;
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 /** Returns today's date as "YYYY-MM-DD" in local time. */
 function todayISO(): string {
-  const d = new Date();
+  const d    = new Date();
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, '0');
   const dd   = String(d.getDate()).padStart(2, '0');
@@ -28,8 +28,7 @@ function todayISO(): string {
 
 /**
  * Seeds the date-range inputs with today if they are still empty.
- * This keeps the filter intact when the user has already set custom dates
- * and merely closes/re-opens the panel.
+ * Keeps the filter intact when the user closes/re-opens the panel.
  */
 function seedDefaultDateFilter(): void {
   const fromEl = findEl<HTMLInputElement>('history-all-from');
@@ -51,18 +50,17 @@ export async function toggleHistoryAllPanel(): Promise<void> {
     panel?.classList.add('open');
     backdrop?.classList.add('open');
     seedDefaultDateFilter();
-    ensureSearchDrawer();   // ← crear el cajón antes de cualquier render
+    ensureSearchDrawer();   // create drawer before any render
     await loadHistoryAll();
   } else {
     panel?.classList.remove('open');
     backdrop?.classList.remove('open');
-    // Reset search drawer state for next open
+    // Reset search state for next open
     _searchOpen  = false;
     _searchQuery = '';
     const input = findEl<HTMLInputElement>('history-all-search-input');
     if (input) input.value = '';
     findEl('history-all-search-drawer')?.classList.remove('open');
-    // Notify SPED so it can reclaim focus if needed
     document.dispatchEvent(new CustomEvent('modal:closed'));
   }
   haptic();
@@ -86,9 +84,11 @@ export async function clearHistoryAll(): Promise<void> {
   }
 }
 
+/* ── Search drawer ───────────────────────────────────────────────────────── */
+
 /**
- * Injects the search drawer (<div class="history-all-search-drawer">) into the
- * DOM right after the date-filter bar, if it does not already exist.
+ * Injects the search drawer into the DOM right after the date-filter bar.
+ * Idempotent — safe to call multiple times.
  */
 function ensureSearchDrawer(): void {
   if (findEl('history-all-search-drawer')) return;
@@ -101,10 +101,10 @@ function ensureSearchDrawer(): void {
   drawer.className = 'history-all-search-drawer';
 
   const input = document.createElement('input');
-  input.type        = 'text';
-  input.id          = 'history-all-search-input';
-  input.className   = 'history-all-search-input';
-  input.placeholder = 'Buscar por ID o nombre…';
+  input.type         = 'text';
+  input.id           = 'history-all-search-input';
+  input.className    = 'history-all-search-input';
+  input.placeholder  = 'Buscar por ID o nombre\u2026';
   input.autocomplete = 'off';
   input.spellcheck   = false;
   input.addEventListener('input', () => {
@@ -115,8 +115,8 @@ function ensureSearchDrawer(): void {
 
   const clearBtn = document.createElement('button');
   clearBtn.className   = 'btn-hall-search-clear';
-  clearBtn.textContent = '✕';
-  clearBtn.title       = 'Limpiar búsqueda';
+  clearBtn.textContent = '\u2715';
+  clearBtn.title       = 'Limpiar b\u00fasqueda';
   clearBtn.addEventListener('click', () => {
     input.value  = '';
     _searchQuery = '';
@@ -130,8 +130,6 @@ function ensureSearchDrawer(): void {
   countEl.className = 'history-all-search-count';
 
   drawer.append(input, clearBtn, countEl);
-
-  // Insert after the filter bar
   filterBar.insertAdjacentElement('afterend', drawer);
 }
 
@@ -159,15 +157,13 @@ function toggleSearchDrawer(): void {
   if (_searchOpen) {
     drawer?.classList.add('open');
     btn?.classList.add('active');
-    // Auto-focus the input
     const input = findEl<HTMLInputElement>('history-all-search-input');
     setTimeout(() => input?.focus(), 80);
   } else {
     drawer?.classList.remove('open');
     btn?.classList.remove('active');
-    // Reset search so the full list is restored
     _searchQuery = '';
-    const input  = findEl<HTMLInputElement>('history-all-search-input');
+    const input = findEl<HTMLInputElement>('history-all-search-input');
     if (input) input.value = '';
     renderHistoryAllList();
     updateSearchCount();
@@ -175,9 +171,9 @@ function toggleSearchDrawer(): void {
   haptic();
 }
 
-
-
 /* ── Private ─────────────────────────────────────────────────────────────── */
+
+async function loadHistoryAll(): Promise<void> {
   if (_loading) return;
   _loading = true;
 
@@ -200,7 +196,8 @@ function toggleSearchDrawer(): void {
     renderHistoryAllList();
     renderExportButton();
     updateSearchCount();
-    if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
+  } catch {
+    if (listEl) listEl.innerHTML = '<p class="history-empty">&#9888;&#65039; Error loading. Check connection.</p>';
     renderExportButton();
   } finally {
     _loading = false;
@@ -211,7 +208,7 @@ function renderHistoryAllList(): void {
   const listEl = findEl('history-all-list');
   if (!listEl) return;
 
-  // Apply case-insensitive search filter (ID or name)
+  // Case-insensitive filter by barcode ID or product name
   const q = _searchQuery.trim().toLowerCase();
   const visible = q
     ? _entries.filter(e =>
@@ -222,7 +219,7 @@ function renderHistoryAllList(): void {
 
   if (visible.length === 0) {
     listEl.innerHTML = `<p class="history-empty">${
-      q ? 'Sin resultados para esa búsqueda.' : 'No entries found.'
+      q ? 'Sin resultados para esa b\u00fasqueda.' : 'No entries found.'
     }</p>`;
     return;
   }
@@ -248,7 +245,7 @@ function renderHistoryAllList(): void {
 
     const nameEl = document.createElement('span');
     nameEl.className   = 'history-name';
-    nameEl.textContent = entry.product_name || '—';
+    nameEl.textContent = entry.product_name || '\u2014';
 
     const infoCol = document.createElement('div');
     infoCol.className = 'history-info-col';
@@ -265,10 +262,9 @@ function renderHistoryAllList(): void {
       infoCol.append(qtyEl);
     }
 
-    // ── Individual delete button ─────────────────────────────────────────
     const delBtn = document.createElement('button');
     delBtn.className   = 'hall-del-btn';
-    delBtn.textContent = '🗑';
+    delBtn.textContent = '\u{1F5D1}';
     delBtn.title       = 'Delete this entry';
     delBtn.addEventListener('click', () => void deleteHistoryAllEntry(entry, row));
 
@@ -280,11 +276,11 @@ function renderHistoryAllList(): void {
 }
 
 async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement): Promise<void> {
-  const label = entry.product_name || entry.barcode_id;
+  const label     = entry.product_name || entry.barcode_id;
   const confirmed = window.confirm(`Delete entry for "${label}"?`);
   if (!confirmed) return;
 
-  rowEl.style.opacity = '0.4';
+  rowEl.style.opacity       = '0.4';
   rowEl.style.pointerEvents = 'none';
 
   try {
@@ -295,7 +291,7 @@ async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement)
     if (countEl) countEl.textContent = `${_entries.length} entries`;
     renderExportButton();
   } catch {
-    rowEl.style.opacity = '';
+    rowEl.style.opacity       = '';
     rowEl.style.pointerEvents = '';
     alert('Error deleting entry. Check connection.');
   }
@@ -303,45 +299,38 @@ async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement)
 
 /* ── CSV Export ──────────────────────────────────────────────────────────── */
 
-/**
- * Injects / updates the Export CSV button in the history-all-panel header.
- * Button only renders when there are entries in memory.
- */
 function renderExportButton(): void {
   const actionsEl = findEl('history-all-actions');
   if (!actionsEl) return;
 
-  // Remove any existing export / search buttons
+  // Remove any existing dynamic buttons
   actionsEl.querySelectorAll('.btn-hall-export, .btn-hall-search').forEach(b => b.remove());
 
-  // ── Search (lupa) button — always present ──────────────────────────────
-  const searchBtn = document.createElement('button');
-  searchBtn.id          = 'history-all-search-btn';
-  searchBtn.className   = `btn-hall-search${_searchOpen ? ' active' : ''}`;
-  searchBtn.textContent = '🔍';
-  searchBtn.title       = 'Buscar por ID o nombre';
-  searchBtn.addEventListener('click', toggleSearchDrawer);
-
-  // ── Export CSV — only when there are entries ───────────────────────────
   const closeBtn = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
 
+  // Export CSV — only when there are entries
   if (_entries.length > 0) {
     const exportBtn = document.createElement('button');
     exportBtn.className   = 'btn-hall-export btn-hall-apply';
-    exportBtn.textContent = '⬇ CSV';
+    exportBtn.textContent = '\u2B07 CSV';
     exportBtn.title       = 'Export as CSV';
     exportBtn.addEventListener('click', exportCSV);
-
     actionsEl.insertBefore(exportBtn, closeBtn);
   }
 
+  // Search (lupa) button — always present, to the left of CSV
+  const searchBtn = document.createElement('button');
+  searchBtn.id          = 'history-all-search-btn';
+  searchBtn.className   = `btn-hall-search${_searchOpen ? ' active' : ''}`;
+  searchBtn.textContent = '\uD83D\uDD0D';
+  searchBtn.title       = 'Buscar por ID o nombre';
+  searchBtn.addEventListener('click', toggleSearchDrawer);
   actionsEl.insertBefore(searchBtn, actionsEl.querySelector('.btn-hall-export') ?? closeBtn);
 }
 
 function escapeCSVField(value: string | number | null): string {
   if (value === null || value === undefined) return '';
   const str = String(value);
-  // Wrap in double-quotes if the value contains a comma, quote, or newline
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
@@ -352,13 +341,9 @@ function exportCSV(): void {
   const headers = ['Fecha', 'Hora', 'Barcode ID', 'Nombre producto', 'CC Qty', 'Pull Qty'];
 
   const rows = _entries.map(entry => {
-    const dt = new Date(entry.scanned_at);
-    const fecha = isNaN(dt.getTime())
-      ? entry.scanned_at
-      : dt.toLocaleDateString();
-    const hora  = isNaN(dt.getTime())
-      ? ''
-      : dt.toLocaleTimeString();
+    const dt    = new Date(entry.scanned_at);
+    const fecha = isNaN(dt.getTime()) ? entry.scanned_at : dt.toLocaleDateString();
+    const hora  = isNaN(dt.getTime()) ? ''               : dt.toLocaleTimeString();
 
     return [
       escapeCSVField(fecha),
