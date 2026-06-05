@@ -497,6 +497,90 @@
   letter-spacing: 0.2px;
 }
 
+/* ─── Search button (lupa) ──────────────────────────────────────────────── */
+.btn-hall-search {
+  background: rgba(255,255,255,0.10);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-hall-search:active,
+.btn-hall-search.active {
+  background: rgba(0, 229, 255, 0.20);
+  color: #00e5ff;
+}
+
+/* ─── Search drawer (below filter bar) ──────────────────────────────────── */
+.history-all-search-drawer {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: #0d0d1a;
+  border-bottom: 1px solid #2a2a40;
+  flex-shrink: 0;
+}
+
+.history-all-search-drawer.open {
+  display: flex;
+}
+
+.history-all-search-input {
+  flex: 1;
+  background: #1e1e30;
+  border: 1.5px solid #3a3a58;
+  color: #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+  caret-color: #00e5ff;
+}
+
+.history-all-search-input::placeholder {
+  color: #555;
+  font-weight: 400;
+}
+
+.history-all-search-input:focus {
+  border-color: #00e5ff;
+}
+
+.btn-hall-search-clear {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-hall-search-clear:hover { color: #ff4d4d; }
+
+.history-all-search-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #00e5ff;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ── History All — individual delete button ───────────────────────────────── */
 .hall-del-btn {
   flex-shrink: 0;
