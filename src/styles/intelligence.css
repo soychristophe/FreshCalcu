@@ -2,35 +2,35 @@
    Intelligence Panel — FreshWays Pro
 ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Trigger button ──────────────────────────────────────────────────────── */
+/* ── Trigger button — lives inside #sped-step1 ───────────────────────────── */
 #intel-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0.5rem 0.95rem;
-  border-radius: 2rem;
-  border: 1.5px solid rgba(200, 245, 66, 0.35);
-  background: rgba(30, 30, 40, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - 32px);
+  margin: 10px 16px 4px;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid rgba(200, 245, 66, 0.4);
+  background: rgba(200, 245, 66, 0.08);
   color: #c8f542;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
-  white-space: nowrap;
   user-select: none;
 }
 #intel-btn svg {
-  width: 14px; height: 14px;
+  width: 15px; height: 15px;
   stroke: #c8f542; fill: none;
   stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
   flex-shrink: 0;
 }
-#intel-btn:hover  { background: rgba(200, 245, 66, 0.12); }
-#intel-btn:active { transform: scale(0.96); }
+#intel-btn:hover  { background: rgba(200, 245, 66, 0.16); }
+#intel-btn:active { transform: scale(0.97); }
 
 /* ── Backdrop ────────────────────────────────────────────────────────────── */
 .intel-backdrop {
