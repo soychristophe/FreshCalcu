@@ -51,6 +51,7 @@ export async function toggleHistoryAllPanel(): Promise<void> {
     panel?.classList.add('open');
     backdrop?.classList.add('open');
     seedDefaultDateFilter();
+    ensureSearchDrawer();   // ← crear el cajón antes de cualquier render
     await loadHistoryAll();
   } else {
     panel?.classList.remove('open');
@@ -151,10 +152,9 @@ function updateSearchCount(): void {
 
 function toggleSearchDrawer(): void {
   _searchOpen = !_searchOpen;
-  ensureSearchDrawer();
 
-  const drawer  = findEl('history-all-search-drawer');
-  const btn     = findEl('history-all-search-btn');
+  const drawer = findEl('history-all-search-drawer');
+  const btn    = findEl('history-all-search-btn');
 
   if (_searchOpen) {
     drawer?.classList.add('open');
@@ -178,8 +178,6 @@ function toggleSearchDrawer(): void {
 
 
 /* ── Private ─────────────────────────────────────────────────────────────── */
-
-async function loadHistoryAll(): Promise<void> {
   if (_loading) return;
   _loading = true;
 
@@ -202,7 +200,6 @@ async function loadHistoryAll(): Promise<void> {
     renderHistoryAllList();
     renderExportButton();
     updateSearchCount();
-  } catch {
     if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
     renderExportButton();
   } finally {
