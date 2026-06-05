@@ -178,6 +178,8 @@ function toggleSearchDrawer(): void {
 
 
 /* ── Private ─────────────────────────────────────────────────────────────── */
+
+async function loadHistoryAll(): Promise<void> {
   if (_loading) return;
   _loading = true;
 
@@ -200,6 +202,7 @@ function toggleSearchDrawer(): void {
     renderHistoryAllList();
     renderExportButton();
     updateSearchCount();
+  } catch {
     if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
     renderExportButton();
   } finally {
