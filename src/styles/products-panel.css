@@ -13,10 +13,7 @@
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: calc(100vw - 24px);
+  gap: 10px;
   transition: opacity 0.2s;
 }
 
@@ -26,14 +23,13 @@
 }
 
 /* ── Estilo compartido: Products y History All ──────────────────────────── */
-/* #intel-btn está definido en intelligence.css                              */
 #products-btn,
 #history-all-btn {
   display: flex;
   align-items: center;
   gap: 6px;
 
-  padding: 0.5rem 1.1rem;
+  padding: 0.55rem 1.4rem;
   border-radius: 2rem;
   border: 1.5px solid rgba(255,255,255,0.18);
   background: rgba(30,30,40,0.82);
@@ -62,7 +58,7 @@
   flex-shrink: 0;
 }
 
-#products-btn:active    { transform: scale(0.96); }
+#products-btn:active { transform: scale(0.96); }
 #history-all-btn:active { transform: scale(0.96); }
 
 /* ── Overlay del panel ──────────────────────────────────────────────────── */
