@@ -96,34 +96,6 @@ const el: AppElements = {
 
 const triggerCopyToast = (): void => showToast(el.copyToast);
 
-/* ── SW asset pre-caching ────────────────────────────────────────────────── */
-// After the page has loaded, tell the Service Worker to cache all Vite-hashed
-// bundles that were fetched this session. This ensures the NEXT cold start on
-// Android serves JS entirely from cache (no blank-screen wait for network).
-
-function precacheViteAssets(): void {
-  if (!('serviceWorker' in navigator)) return;
-
-  navigator.serviceWorker.ready.then(reg => {
-    if (!reg.active) return;
-
-    const scriptUrls = Array.from(
-      document.querySelectorAll<HTMLScriptElement>('script[src]'),
-    ).map(s => s.src);
-
-    const styleUrls = Array.from(
-      document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
-    ).map(l => l.href);
-
-    const urls = [...scriptUrls, ...styleUrls].filter(
-      u => u.includes('/assets/'),
-    );
-
-    if (urls.length > 0) {
-      reg.active.postMessage({ type: 'PRECACHE_ASSETS', urls });
-    }
-  }).catch(() => { /* non-critical */ });
-}
 
 /* ── Bootstrap ───────────────────────────────────────────────────────────── */
 
@@ -172,9 +144,8 @@ window.addEventListener('DOMContentLoaded', () => {
   // then refreshes from network in the background.
   void loadProductCache();
 
-  // After everything is painted, warm the SW cache with the Vite bundles
-  // so the next cold start is instant.
-  precacheViteAssets();
+  // El Service Worker (Workbox via vite-plugin-pwa) ya precachea todos los
+  // assets en build time — no necesitamos hacer nada aquí.
 });
 
 /* ── Wire all HTML inline handlers via data-action delegation ────────────────

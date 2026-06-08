@@ -162,8 +162,11 @@ function _score(
 
     const c: Candidate = { barcode, name: g.name, avgHour, timeScore, score, freq: n, isLate };
 
-    if (isLate) overdue.push(c);
-    else        upcoming.push(c);
+    if (isLate) {
+      if (timeScore >= 0.01) overdue.push(c);
+    } else {
+      upcoming.push(c);
+    }
   }
 
   return {
