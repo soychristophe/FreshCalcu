@@ -742,3 +742,30 @@
   background: rgba(200, 245, 66, 0.3);
   color: #333;
 }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — pantallas pequeñas (≤380px)
+   Products Panel header
+   ══════════════════════════════════════════════ */
+@media (max-width: 380px) {
+
+  .pp-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0.5rem 0.75rem 0.6rem;
+  }
+
+  .pp-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Botones un poco más compactos */
+  .pp-btn-close,
+  .pp-btn-refresh,
+  .pp-btn-add {
+    font-size: 0.72rem;
+    padding: 0 9px;
+  }
+}

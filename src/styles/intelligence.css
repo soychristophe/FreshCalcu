@@ -206,3 +206,24 @@
 }
 .intel-sped-btn:hover  { background: rgba(200,245,66,0.22); }
 .intel-sped-btn:active { transform: scale(0.92); background: rgba(200,245,66,0.3); }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — pantallas pequeñas (≤380px)
+   Intelligence (NEXT) Panel header
+   ══════════════════════════════════════════════ */
+@media (max-width: 380px) {
+
+  .intel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px 8px;
+  }
+
+  .intel-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+    display: flex;
+    gap: 4px;
+  }
+}
