@@ -445,6 +445,126 @@
 
 .btn-hall-apply:active { opacity: 0.75; }
 
+/* ─── Search button (lupa) ─────────────────── */
+.btn-hall-search {
+  background: rgba(255,255,255,0.10);
+  border: 1.5px solid rgba(0, 229, 255, 0.30);
+  color: #ccc;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-hall-search:active {
+  background: rgba(0, 229, 255, 0.15);
+}
+
+/* Active state: lupa pulsada → resaltada en cyan */
+.btn-hall-search.active {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: #00e5ff;
+  color: #00e5ff;
+}
+
+/* ─── Search drawer ──────────────────────────── */
+/*
+ * Oculto por defecto con height:0 + overflow:hidden.
+ * Al añadir .open sube a su altura natural con una
+ * transición suave — sin JS de medición.
+ */
+.history-all-search-drawer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a40;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  /* Oculto: sin altura, sin padding vertical */
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-height 0.22s ease, opacity 0.18s ease, padding 0.22s ease;
+}
+
+.history-all-search-drawer.open {
+  max-height: 64px;      /* suficiente para el input + padding */
+  opacity: 1;
+  pointer-events: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* ─── Search input ───────────────────────────── */
+.history-all-search-input {
+  flex: 1;
+  background: #0f0f1e;
+  border: 1.5px solid #3a3a58;
+  color: #e0e0e0;
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  outline: none;
+  caret-color: #00e5ff;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+
+.history-all-search-input::placeholder {
+  color: #555;
+  font-style: italic;
+}
+
+.history-all-search-input:focus {
+  border-color: #00e5ff;
+}
+
+/* ─── Clear (✕) button inside drawer ─────────── */
+.btn-hall-search-clear {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: #888;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-hall-search-clear:hover,
+.btn-hall-search-clear:active {
+  background: rgba(255,77,77,0.18);
+  color: #ff6b6b;
+}
+
+/* ─── Match counter "12 / 340" ───────────────── */
+.history-all-search-count {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #00e5ff;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: right;
+  letter-spacing: 0.3px;
+}
+
 /* ─── Count bar ─────────────────────────────── */
 .history-all-count {
   padding: 5px 14px;

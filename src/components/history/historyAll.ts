@@ -50,7 +50,8 @@ export async function toggleHistoryAllPanel(): Promise<void> {
     panel?.classList.add('open');
     backdrop?.classList.add('open');
     seedDefaultDateFilter();
-    ensureSearchDrawer();   // create drawer before any render
+    ensureSearchDrawer();    // create drawer before any render
+    ensureSearchButton();    // create search button (idempotent)
     await loadHistoryAll();
   } else {
     panel?.classList.remove('open');
@@ -61,6 +62,7 @@ export async function toggleHistoryAllPanel(): Promise<void> {
     const input = findEl<HTMLInputElement>('history-all-search-input');
     if (input) input.value = '';
     findEl('history-all-search-drawer')?.classList.remove('open');
+    findEl('history-all-search-btn')?.classList.remove('active');
     document.dispatchEvent(new CustomEvent('modal:closed'));
   }
   haptic();
@@ -104,7 +106,7 @@ function ensureSearchDrawer(): void {
   input.type         = 'text';
   input.id           = 'history-all-search-input';
   input.className    = 'history-all-search-input';
-  input.placeholder  = 'Buscar por ID o nombre\u2026';
+  input.placeholder  = 'Buscar por ID o nombre…';
   input.autocomplete = 'off';
   input.spellcheck   = false;
   input.addEventListener('input', () => {
@@ -115,8 +117,8 @@ function ensureSearchDrawer(): void {
 
   const clearBtn = document.createElement('button');
   clearBtn.className   = 'btn-hall-search-clear';
-  clearBtn.textContent = '\u2715';
-  clearBtn.title       = 'Limpiar b\u00fasqueda';
+  clearBtn.textContent = '✕';
+  clearBtn.title       = 'Limpiar búsqueda';
   clearBtn.addEventListener('click', () => {
     input.value  = '';
     _searchQuery = '';
@@ -131,6 +133,27 @@ function ensureSearchDrawer(): void {
 
   drawer.append(input, clearBtn, countEl);
   filterBar.insertAdjacentElement('afterend', drawer);
+}
+
+/**
+ * Injects the search (lupa) button into history-all-actions, to the left of
+ * the close button. Idempotent — safe to call multiple times.
+ */
+function ensureSearchButton(): void {
+  if (findEl('history-all-search-btn')) return;
+
+  const actionsEl = findEl('history-all-actions');
+  if (!actionsEl) return;
+
+  const closeBtn = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
+
+  const searchBtn = document.createElement('button');
+  searchBtn.id          = 'history-all-search-btn';
+  searchBtn.className   = 'btn-hall-search';
+  searchBtn.textContent = '🔍';
+  searchBtn.title       = 'Buscar por ID o nombre';
+  searchBtn.addEventListener('click', toggleSearchDrawer);
+  actionsEl.insertBefore(searchBtn, closeBtn);
 }
 
 function updateSearchCount(): void {
@@ -197,7 +220,7 @@ async function loadHistoryAll(): Promise<void> {
     renderExportButton();
     updateSearchCount();
   } catch {
-    if (listEl) listEl.innerHTML = '<p class="history-empty">&#9888;&#65039; Error loading. Check connection.</p>';
+    if (listEl) listEl.innerHTML = '<p class="history-empty">⚠️ Error loading. Check connection.</p>';
     renderExportButton();
   } finally {
     _loading = false;
@@ -219,7 +242,7 @@ function renderHistoryAllList(): void {
 
   if (visible.length === 0) {
     listEl.innerHTML = `<p class="history-empty">${
-      q ? 'Sin resultados para esa b\u00fasqueda.' : 'No entries found.'
+      q ? 'Sin resultados para esa búsqueda.' : 'No entries found.'
     }</p>`;
     return;
   }
@@ -245,7 +268,7 @@ function renderHistoryAllList(): void {
 
     const nameEl = document.createElement('span');
     nameEl.className   = 'history-name';
-    nameEl.textContent = entry.product_name || '\u2014';
+    nameEl.textContent = entry.product_name || '—';
 
     const infoCol = document.createElement('div');
     infoCol.className = 'history-info-col';
@@ -264,7 +287,7 @@ function renderHistoryAllList(): void {
 
     const delBtn = document.createElement('button');
     delBtn.className   = 'hall-del-btn';
-    delBtn.textContent = '\u{1F5D1}';
+    delBtn.textContent = '🗑';
     delBtn.title       = 'Delete this entry';
     delBtn.addEventListener('click', () => void deleteHistoryAllEntry(entry, row));
 
@@ -299,33 +322,32 @@ async function deleteHistoryAllEntry(entry: HistoryAllEntry, rowEl: HTMLElement)
 
 /* ── CSV Export ──────────────────────────────────────────────────────────── */
 
+/**
+ * Renders (or removes) the CSV export button.
+ * The search button is managed separately by ensureSearchButton() — this
+ * function no longer touches it, avoiding the re-creation loop that was
+ * breaking the toggle state.
+ */
 function renderExportButton(): void {
   const actionsEl = findEl('history-all-actions');
   if (!actionsEl) return;
 
-  // Remove any existing dynamic buttons
-  actionsEl.querySelectorAll('.btn-hall-export, .btn-hall-search').forEach(b => b.remove());
-
-  const closeBtn = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
+  // Remove only the export button (search button stays)
+  actionsEl.querySelectorAll('.btn-hall-export').forEach(b => b.remove());
 
   // Export CSV — only when there are entries
   if (_entries.length > 0) {
+    const searchBtn = findEl('history-all-search-btn');
+    const closeBtn  = findEl('history-all-close-btn') ?? actionsEl.lastElementChild;
+    const anchor    = searchBtn ?? closeBtn;
+
     const exportBtn = document.createElement('button');
     exportBtn.className   = 'btn-hall-export btn-hall-apply';
-    exportBtn.textContent = '\u2B07 CSV';
+    exportBtn.textContent = '⬇ CSV';
     exportBtn.title       = 'Export as CSV';
     exportBtn.addEventListener('click', exportCSV);
-    actionsEl.insertBefore(exportBtn, closeBtn);
+    actionsEl.insertBefore(exportBtn, anchor);
   }
-
-  // Search (lupa) button — always present, to the left of CSV
-  const searchBtn = document.createElement('button');
-  searchBtn.id          = 'history-all-search-btn';
-  searchBtn.className   = `btn-hall-search${_searchOpen ? ' active' : ''}`;
-  searchBtn.textContent = '\uD83D\uDD0D';
-  searchBtn.title       = 'Buscar por ID o nombre';
-  searchBtn.addEventListener('click', toggleSearchDrawer);
-  actionsEl.insertBefore(searchBtn, actionsEl.querySelector('.btn-hall-export') ?? closeBtn);
 }
 
 function escapeCSVField(value: string | number | null): string {
