@@ -181,7 +181,7 @@ async function handleCreateProduct(req: Request, env: Env): Promise<Response> {
   try {
     await env.DB
       .prepare(`INSERT INTO products (id, name, sku, values_json) VALUES (?1, ?2, ?3, ?4)`)
-      .bind(body.id, body.name, body.sku ?? null, valuesJson)
+      .bind(body.id, body.name, body.sku ?? '', valuesJson)
       .run();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -198,7 +198,12 @@ async function handleCreateProduct(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleUpdateProduct(id: string, req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{ name?: string; sku?: string; values?: string[] }>();
+  let body: { name?: string; sku?: string; values?: string[] };
+  try {
+    body = await req.json<{ name?: string; sku?: string; values?: string[] }>();
+  } catch {
+    return err('Invalid JSON body', 400);
+  }
 
   const current = await env.DB
     .prepare(`SELECT id, name, sku, values_json FROM products WHERE id = ?1`)
@@ -208,7 +213,7 @@ async function handleUpdateProduct(id: string, req: Request, env: Env): Promise<
   if (!current) return err('Not found', 404);
 
   const newName   = body.name   ?? current.name;
-  const newSku    = body.sku    !== undefined ? body.sku : current.sku;
+  const newSku    = body.sku    !== undefined ? (body.sku ?? '') : (current.sku ?? '');
   const newValues = body.values !== undefined
     ? JSON.stringify(body.values)
     : current.values_json;
@@ -250,7 +255,12 @@ async function handleGetHistory(env: Env): Promise<Response> {
 }
 
 async function handleAddHistory(req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{ barcode_id: string; product_name: string; qty?: number | null; pull_qty?: number | null; client_time?: string }>();
+  let body: { barcode_id: string; product_name: string; qty?: number | null; pull_qty?: number | null; client_time?: string };
+  try {
+    body = await req.json<{ barcode_id: string; product_name: string; qty?: number | null; pull_qty?: number | null; client_time?: string }>();
+  } catch {
+    return err('Invalid JSON body', 400);
+  }
   if (!body.barcode_id) return err('barcode_id is required');
 
   const histInsertSQL = body.client_time
@@ -335,14 +345,12 @@ async function handleGetHistoryAll(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleAddHistoryAll(req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{
-    barcode_id:   string;
-    product_name: string;
-    qty:          number | null;
-    pull_qty:     number | null;
-    client_time?: string;
-  }>();
-
+  let body: { barcode_id: string; product_name: string; qty: number | null; pull_qty: number | null; client_time?: string };
+  try {
+    body = await req.json<{ barcode_id: string; product_name: string; qty: number | null; pull_qty: number | null; client_time?: string }>();
+  } catch {
+    return err('Invalid JSON body', 400);
+  }
   if (!body.barcode_id) return err('barcode_id is required');
 
   const insertSQL = body.client_time
