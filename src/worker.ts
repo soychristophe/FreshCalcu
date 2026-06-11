@@ -166,7 +166,15 @@ async function handleGetProduct(id: string, env: Env): Promise<Response> {
 }
 
 async function handleCreateProduct(req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{ id: string; name: string; sku?: string; values: string[] }>();
+  let body: { id: string; name: string; sku?: string; values: string[] };
+  try {
+    body = await req.json<{ id: string; name: string; sku?: string; values: string[] }>();
+  } catch {
+    return err('Invalid JSON body', 400);
+  }
+  // Ensure id is always treated as a string (guards against numeric barcode IDs
+  // being serialised as numbers by some JSON parsers, which breaks D1 TEXT columns)
+  body.id = String(body.id ?? '').trim();
   if (!body.id || !body.name) return err('id and name are required');
 
   const valuesJson = JSON.stringify(body.values ?? []);
