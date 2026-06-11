@@ -377,6 +377,8 @@ async function _doOpenForm(id: string | null): Promise<void> {
 function closeForm(): void {
   findEl('pp-form-overlay')?.classList.remove('open');
   panelState.editingId = null;
+  const saveBtn = findEl<HTMLButtonElement>('pp-form-save');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
 }
 
 async function saveProduct(): Promise<void> {
@@ -388,9 +390,10 @@ async function saveProduct(): Promise<void> {
 
   if (!saveBtn || !inputId || !inputName || !inputSku || !inputVals) return;
 
-  const id   = inputId.value.trim();
+  // Strip any invisible/non-breaking characters that break the Worker's pattern validation
+  const id   = inputId.value.trim().replace(/[^\w\-]/g, '');
   const name = inputName.value.trim();
-  const sku  = inputSku.value.trim();
+  const sku  = inputSku.value.trim().replace(/[^\w\-]/g, '');
   const values = transformValuesInput(inputVals.value)
     .split(',')
     .map(v => v.trim())
