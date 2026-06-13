@@ -239,7 +239,6 @@
 
 .sped-product-info h4 { margin: 0; color: var(--text); font-size: 0.95rem; }
 
-/* ── Name row: nombre + botón editar ── */
 .sped-product-info-header {
   display: flex;
   align-items: center;
@@ -248,13 +247,13 @@
   margin: 0 0 8px 0;
 }
 
-/* ── Botón lápiz inline ── */
 .btn-sped-edit-product {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 26px;
   height: 26px;
+  padding: 0;
   border: none;
   border-radius: 6px;
   background: #eef2ff;
@@ -268,15 +267,10 @@
 .btn-sped-edit-product svg {
   width: 13px;
   height: 13px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .btn-sped-edit-product:hover  { background: #dde3ff; }
-.btn-sped-edit-product:active { transform: scale(.92); background: #c7d0ff; }
+.btn-sped-edit-product:active { transform: scale(.92); }
 
 .sped-formulas    { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 

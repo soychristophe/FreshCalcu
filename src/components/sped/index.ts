@@ -301,17 +301,16 @@ async function _handlePrefill(productId: string): Promise<void> {
 function renderSpedProductInfo(): void {
   const { id, name = 'No name', values = [] } = state.selectedProduct ?? {};
   const buildInfoBlock = (): Node[] => {
-    const barcodeEl  = make('div', { className: 'sped-barcode-badge', textContent: `🔖 ${id ?? ''}` });
+    const barcodeEl = make('div', { className: 'sped-barcode-badge', textContent: `🔖 ${id ?? ''}` });
 
-    // ── Name row with inline edit button ─────────────────────────────────
+    // Name + edit button row
     const nameRow = make('div', { className: 'sped-product-info-header' });
     const nameEl  = make('h4', { textContent: name });
     const editBtn = make('button', { className: 'btn-sped-edit-product', title: 'Edit product' });
-    editBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-    editBtn.addEventListener('click', async () => {
+    editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editBtn.addEventListener('click', () => {
       if (!id) return;
-      const { openProductForm } = await import('@/components/products-panel/index.ts');
-      await openProductForm(id);
+      document.dispatchEvent(new CustomEvent('product:edit', { detail: { productId: id } }));
     });
     nameRow.append(nameEl, editBtn);
 
