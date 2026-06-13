@@ -175,10 +175,6 @@ export function isFilterHistoryOn(): boolean {
   return (findEl<HTMLInputElement>('sped-filter-history')?.checked) ?? false;
 }
 
-export function getHistoryIds(): string[] {
-  return getHistory().map(h => String(h.id));
-}
-
 /* ── Progress counter ────────────────────────────────────────────────────── */
 
 export function updateSpedProgressCounter(): void {

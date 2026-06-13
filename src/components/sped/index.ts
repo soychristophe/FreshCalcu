@@ -39,9 +39,6 @@ import { copyToClipboard }            from '@/utils/clipboard.ts';
 import { pasteFromClipboard }         from '@/utils/clipboard.ts';
 import { haptic, make, fitText, setError, findEl } from '@/utils/dom.ts';
 import { SEARCH_DEBOUNCE_MS }         from '@/config/constants.ts';
-import {
-  addSessionEntry,
-}                                     from '@/services/sessionService.ts';
 import type { AppElements, Product, SpedView } from '@/types/index.ts';
 
 let _el: AppElements;
@@ -166,10 +163,6 @@ function _maybeReturnFocus(): void {
   if (state.spedCurrentView !== 'step1') return;
   if (_isModalOpen()) return;
   _el.spedBarcode.focus();
-}
-
-export function returnFocusToBarcode(): void {
-  _maybeReturnFocus();
 }
 
 /* ── View management ─────────────────────────────────────────────────────── */
@@ -357,16 +350,6 @@ export function processSped(): void {
   // ── Update History Day with qty values ───────────────────────────────────
   updateHistoryWithQty(String(state.selectedProduct.id), qty, pullQtyFinal);
   renderHistoryList();
-
-  // Record in active session
-  addSessionEntry({
-    productId:   String(state.selectedProduct.id),
-    productName: state.selectedProduct.name ?? '',
-    qty,
-    pullQty:     pullQtyFinal,
-    formulaUsed: best,
-    timestamp:   new Date().toISOString(),
-  });
 
   if (pullQtyFinal !== null) {
     renderPullResult(qty, best, calc, pullQtyFinal);

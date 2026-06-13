@@ -31,10 +31,6 @@ export const STORAGE_KEY = {
   PRODUCTS:         'fw_products_v1',
   /** ISO timestamp of the last successful product cache refresh. */
   PRODUCT_CACHE_TS: 'fw_products_cache_ts',
-  /** Array of WorkSession objects. */
-  SESSIONS:         'fw_work_sessions',
-  /** Number: total products to process in current shift (for progress counter). */
-  SPED_TOTAL:       'fw_sped_total',
 } as const;
 
 /* ── Calculator ─────────────────────────────────────────────────────────── */

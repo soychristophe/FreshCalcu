@@ -61,29 +61,6 @@ export interface HistoryAllPage {
   readonly total:   number;
 }
 
-/* ── Work sessions ────────────────────────────────────────────────────────── */
-
-/** A single scanned product entry within a work session. */
-export interface SessionEntry {
-  productId:   string;
-  productName: string;
-  qty:         number;
-  pullQty:     number | null;
-  formulaUsed: string;
-  timestamp:   string;   // ISO string
-}
-
-/** A complete work session (start → end of shift). */
-export interface WorkSession {
-  id:             string;
-  startedAt:      string;          // ISO string
-  endedAt:        string | null;   // null while session is active
-  scans:          number;
-  pullForwards:   number;
-  avgOperationMs: number;
-  entries:        SessionEntry[];
-}
-
 /* ── App state ────────────────────────────────────────────────────────────── */
 
 export type TabMode       = 'calc' | 'box' | 'msj' | 'sped';
