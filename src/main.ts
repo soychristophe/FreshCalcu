@@ -14,6 +14,30 @@ import '@/styles/intelligence.css';
 // Application entry point.
 // Wires together all components. No business logic here — only orchestration.
 
+/* ── Build info (injected by vite.config.ts → define) ───────────────────── */
+declare const __BUILD_DATE__: string;
+declare const __GIT_COMMIT__: string;
+declare const __GIT_BRANCH__:  string;
+
+const BUILD_DATE   = new Date(__BUILD_DATE__).toLocaleString('en-IE', {
+  day: '2-digit', month: 'short', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', second: '2-digit',
+  hour12: false,
+});
+const BUILD_COMMIT = __GIT_COMMIT__ === 'local' ? 'local' : __GIT_COMMIT__.slice(0, 7);
+const BUILD_BRANCH = __GIT_BRANCH__;
+
+console.info(
+  '%c 🥬 Freshways Pro',
+  'font-size:14px;font-weight:900;color:#4361ee;background:#eef2ff;padding:4px 10px;border-radius:6px',
+);
+console.info(
+  `%c branch  %c ${BUILD_BRANCH}\n%c commit  %c ${BUILD_COMMIT}\n%c built   %c ${BUILD_DATE}`,
+  'color:#888;font-weight:700', 'color:#1a1a1a',
+  'color:#888;font-weight:700', 'color:#1a1a1a',
+  'color:#888;font-weight:700', 'color:#1a1a1a',
+);
+
 import { state }             from '@/state/appState.ts';
 import { getEl, showToast }  from '@/utils/dom.ts';
 import { copyToClipboard }   from '@/utils/clipboard.ts';
@@ -146,6 +170,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // El Service Worker (Workbox via vite-plugin-pwa) ya precachea todos los
   // assets en build time — no necesitamos hacer nada aquí.
+
+  // ── Build info banner ─────────────────────────────────────────────────────
+  // Aparece 600ms después del arranque y desaparece solo a los 6s.
+  // Toca el banner para cerrarlo antes.
+  setTimeout(() => {
+    const banner = document.createElement('div');
+    banner.id = 'build-info-banner';
+    banner.innerHTML = `
+      <span class="bib-row"><b>Branch</b> ${BUILD_BRANCH}</span>
+      <span class="bib-row"><b>Commit</b> ${BUILD_COMMIT}</span>
+      <span class="bib-row"><b>Built</b> ${BUILD_DATE}</span>
+    `;
+    banner.addEventListener('click', () => banner.remove());
+    document.body.appendChild(banner);
+    setTimeout(() => banner.classList.add('bib-hide'), 5_000);
+    setTimeout(() => banner.remove(), 5_800);
+  }, 600);
 });
 
 /* ── Wire all HTML inline handlers via data-action delegation ────────────────

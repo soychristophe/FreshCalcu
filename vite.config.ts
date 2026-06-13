@@ -3,6 +3,12 @@ import { VitePWA }      from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  /* ── Build-time constants (visible en consola y/o UI al abrir la app) ── */
+  define: {
+    __BUILD_DATE__:   JSON.stringify(new Date().toISOString()),
+    __GIT_COMMIT__:   JSON.stringify(process.env['CF_PAGES_COMMIT_SHA'] ?? 'local'),
+    __GIT_BRANCH__:   JSON.stringify(process.env['CF_PAGES_BRANCH']     ?? 'local'),
+  },
   /* ── Root & entry ─────────────────────────────────────────────────── */
   root:    '.',
   base:    './',           // Relative paths — required for Cloudflare Pages
