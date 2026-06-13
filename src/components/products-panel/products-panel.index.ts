@@ -331,6 +331,16 @@ async function confirmEditPassword(): Promise<void> {
 }
 
 /* ── Form ────────────────────────────────────────────────────────────────── */
+
+/**
+ * Public entry-point — call this from outside the panel to open the edit form
+ * for a given product ID directly (e.g. from the SPED inline edit button).
+ * Uses the same PIN-gated flow as the products list edit button.
+ */
+export async function openProductForm(id: string | null): Promise<void> {
+  return openForm(id);
+}
+
 async function openForm(id: string | null): Promise<void> {
   if (id) { openEditPasswordPopup(id); return; }
   await _doOpenForm(null);
