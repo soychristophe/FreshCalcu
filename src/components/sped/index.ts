@@ -302,7 +302,19 @@ function renderSpedProductInfo(): void {
   const { id, name = 'No name', values = [] } = state.selectedProduct ?? {};
   const buildInfoBlock = (): Node[] => {
     const barcodeEl  = make('div', { className: 'sped-barcode-badge', textContent: `🔖 ${id ?? ''}` });
-    const nameEl     = make('h4', { textContent: name });
+
+    // ── Name row with inline edit button ─────────────────────────────────
+    const nameRow = make('div', { className: 'sped-product-info-header' });
+    const nameEl  = make('h4', { textContent: name });
+    const editBtn = make('button', { className: 'btn-sped-edit-product', title: 'Edit product' });
+    editBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+    editBtn.addEventListener('click', async () => {
+      if (!id) return;
+      const { openProductForm } = await import('@/components/products-panel/index.ts');
+      await openProductForm(id);
+    });
+    nameRow.append(nameEl, editBtn);
+
     const formulasEl = values.length
       ? make('div', { className: 'sped-formulas' },
           ...values.map(v => make('span', { className: 'sped-formula-tag', textContent: v })),
@@ -312,7 +324,7 @@ function renderSpedProductInfo(): void {
           // @ts-expect-error inline style for optional elements
           style: 'color:#999;font-size:0.9rem;margin:5px 0 0 0;',
         });
-    return [barcodeEl, nameEl, formulasEl];
+    return [barcodeEl, nameRow, formulasEl];
   };
   _el.spedProductInfo.replaceChildren(...buildInfoBlock());
   findEl('sped-product-info-pull')?.replaceChildren(...buildInfoBlock());

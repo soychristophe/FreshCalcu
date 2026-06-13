@@ -237,6 +237,9 @@
   border: 1px solid var(--border);
 }
 
+.sped-product-info h4 { margin: 0; color: var(--text); font-size: 0.95rem; }
+
+/* ── Name row: nombre + botón editar ── */
 .sped-product-info-header {
   display: flex;
   align-items: center;
@@ -245,9 +248,7 @@
   margin: 0 0 8px 0;
 }
 
-.sped-product-info h4 { margin: 0; color: var(--text); font-size: 0.95rem; }
-
-/* ── Inline edit button (pencil) inside product info block ── */
+/* ── Botón lápiz inline ── */
 .btn-sped-edit-product {
   display: inline-flex;
   align-items: center;
