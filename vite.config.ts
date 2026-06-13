@@ -1,14 +1,24 @@
-import { defineConfig } from 'vite';
-import { VitePWA }      from 'vite-plugin-pwa';
+import { defineConfig, loadEnv } from 'vite';
+import { VitePWA }               from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  /* ── Build-time constants (visible en consola y/o UI al abrir la app) ── */
+export default defineConfig(({ mode }) => {
+  // loadEnv lee las variables de entorno del sistema (incluyendo las de CF Pages)
+  // sin necesitar @types/node. El tercer argumento '' permite leer TODAS las vars
+  // (no sólo las prefijadas con VITE_).
+  const env = loadEnv(mode, '.', '');
+
+  const commitSha = env['CF_PAGES_COMMIT_SHA'] ?? 'local';
+  const branch    = env['CF_PAGES_BRANCH']     ?? 'local';
+
+  return {
+  /* ── Build-time constants ───────────────────────────────────────────────── */
   define: {
-    __BUILD_DATE__:   JSON.stringify(new Date().toISOString()),
-    __GIT_COMMIT__:   JSON.stringify(process.env['CF_PAGES_COMMIT_SHA'] ?? 'local'),
-    __GIT_BRANCH__:   JSON.stringify(process.env['CF_PAGES_BRANCH']     ?? 'local'),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+    __GIT_COMMIT__: JSON.stringify(commitSha),
+    __GIT_BRANCH__: JSON.stringify(branch),
   },
+
   /* ── Root & entry ─────────────────────────────────────────────────── */
   root:    '.',
   base:    './',           // Relative paths — required for Cloudflare Pages
@@ -73,36 +83,17 @@ export default defineConfig({
   /* ── PWA / Service Worker ───────────────────────────────────────────── */
   plugins: [
     VitePWA({
-      // generateSW: Workbox genera el SW automáticamente en cada build.
-      // Precachea TODOS los assets (JS, CSS, HTML) con sus hashes → offline
-      // funciona desde la primera visita con internet.
       strategies: 'generateSW',
-
-      // El SW generado se emite como sw.js en la raíz del dist.
       filename: 'sw.js',
-
-      // Registra el SW automáticamente con auto-update silencioso.
-      // Cuando hay una nueva versión disponible, se activa en el siguiente reload.
       registerType: 'autoUpdate',
-
-      // Incluye el helper de registro en el bundle (no necesitamos llamar a
-      // navigator.serviceWorker.register() manualmente).
       injectRegister: 'auto',
 
-      // Workbox config
       workbox: {
-        // Precachear todo lo que Vite emite en /assets/ + index.html + manifest
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-
-        // Navegación SPA: siempre servir index.html desde caché
         navigateFallback: 'index.html',
-
-        // No aplicar navigateFallback a las llamadas a la API
         navigateFallbackDenylist: [/^\/api\//],
 
-        // ── Estrategias de caché runtime ──────────────────────────────
         runtimeCaching: [
-          // Assets de Vite con hash → CacheFirst (el hash garantiza frescura)
           {
             urlPattern: /\/assets\/.+\.(js|css)$/,
             handler:    'CacheFirst',
@@ -111,7 +102,6 @@ export default defineConfig({
               expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
             },
           },
-          // Iconos y estáticos
           {
             urlPattern: /\/icons\/.+\.(png|svg|ico)$/,
             handler:    'CacheFirst',
@@ -120,9 +110,6 @@ export default defineConfig({
               expiration: { maxEntries: 20, maxAgeSeconds: 90 * 24 * 60 * 60 },
             },
           },
-          // API Cloudflare Worker: NetworkFirst con fallback a caché.
-          // → Cuando hay internet, sirve fresh y actualiza caché.
-          // → Sin internet, devuelve la última respuesta cacheada.
           {
             urlPattern: /freshcalcu\.soychristophe\.workers\.dev\/api\//,
             handler:    'NetworkFirst',
@@ -131,12 +118,11 @@ export default defineConfig({
               networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries:    200,
-                maxAgeSeconds: 7 * 24 * 60 * 60,  // 7 días
+                maxAgeSeconds: 7 * 24 * 60 * 60,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          // Proxy local /api/ (dev + Cloudflare Pages)
           {
             urlPattern: /\/api\//,
             handler:    'NetworkFirst',
@@ -152,22 +138,18 @@ export default defineConfig({
           },
         ],
 
-        // Limpia caches antiguas de la versión manual
         cleanupOutdatedCaches: true,
-
-        // El cliente coge el nuevo SW inmediatamente (sin esperar a cerrar tabs)
         skipWaiting:  true,
         clientsClaim: true,
       },
 
-      // Reutiliza el manifest.json que ya tienes en /public/
       manifest: false,
 
       devOptions: {
-        // Activa el SW en dev (útil para testear offline)
         enabled: false,
         type:    'module',
       },
     }),
   ],
+  };
 });
