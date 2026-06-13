@@ -19,6 +19,7 @@
     "@typescript-eslint/parser": "^7.18.0",
     "bestzip": "^3.0.1",
     "eslint": "^8.57.1",
+    "knip": "^6.16.1",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4",
     "vite": "^5.4.2",
